@@ -62,10 +62,10 @@ Deno.serve(async(req)=>{
     const needTvl=allPlans.some((p:any)=>p.symbol===s&&n(p.max_fdv_tvl)!=null);
     const needFees=allPlans.some((p:any)=>p.symbol===s&&n(p.entry_fees_30d)!=null&&n(p.fee_drop)!=null);
     const [protocol,fees]=await Promise.all([
-      needTvl?fetch(`https://api.llama.fi/protocol/${slug}`).then(r=>r.ok?r.json():null).catch(()=>null):Promise.resolve(null),
+      needTvl?fetch(`https://api.llama.fi/tvl/${slug}`).then(r=>r.ok?r.json():null).catch(()=>null):Promise.resolve(null),
       needFees?fetch(`https://api.llama.fi/summary/fees/${slug}?dataType=dailyFees`).then(r=>r.ok?r.json():null).catch(()=>null):Promise.resolve(null)
     ]);
-    fund[s]={tvl:protocol?.tvl??null,fees30d:fees?.total30d??null};
+    fund[s]={tvl:typeof protocol==="number"?protocol:null,fees30d:fees?.total30d??null};
   }));
 
   const stateMap=new Map(allStates.filter((x:any)=>validKeys.has(keyOf(x.user_id,x.symbol,x.rule_type))).map((x:any)=>[keyOf(x.user_id,x.symbol,x.rule_type),x]));
