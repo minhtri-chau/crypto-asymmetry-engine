@@ -1,4 +1,4 @@
-# Crypto Asymmetry Engine v5.5
+# Crypto Asymmetry Engine v5.6
 
 Crypto Asymmetry Engine is a rules-first crypto research and decision-support dashboard. It is intentionally **not** a "magic buy/sell signal" product. The design goal is to make the thesis, valuation, buy rules, sell rules and thesis-break conditions explicit in advance, then surface when those rules or underlying evidence change.
 
@@ -320,7 +320,23 @@ Added 50/200-day moving averages, BTC relative strength, BTC trend regime, Bough
 Added secured Supabase schema with RLS, improved historical-price request reliability, explicit local server-function errors and Vercel/Supabase infrastructure preparation.
 
 ### v5.5
-Adds Supabase Auth, authenticated cloud persistence, one-time local-to-cloud migration and visible sync state while retaining local fallback.
+Added Supabase Auth, authenticated cloud persistence, one-time local-to-cloud migration and visible sync state while retaining local fallback.
+
+### v5.6
+Hardens persistence: newest-180-per-asset cloud loading, account-scoped caches, isolated signed-out guest edits, shared-browser migration protection, `.gitignore`, exact dependency pins and committed npm lockfile.
+
+## v5.6 persistence hardening
+
+v5.6 fixes four persistence/build issues found during review:
+
+- Snapshot cloud reads are now **per symbol, newest 180 first**, then reversed for chronological display. This avoids Supabase's default 1,000-row response ceiling causing stale history after roughly 111 nine-asset saves.
+- Signed-out edits live in a dedicated **guest workspace**. They are not silently overwritten into, or merged with, a signed-in account.
+- Signed-in browser caches are **scoped by Supabase user ID**, preventing one user's cached portfolio from becoming another user's migration source on a shared browser.
+- Legacy pre-v5.6 local data is claimable only once by the first account migration on that browser. Account-scoped caches are never treated as migration input.
+- Added `.gitignore` for `node_modules`, build output, Vercel metadata, logs and all `.env*` files except `.env.example`.
+- Runtime/build dependencies are pinned to exact versions and `package-lock.json` is committed for reproducible Vercel installs.
+
+The database may retain more than 180 snapshots per asset. The UI intentionally loads only the newest 180 per asset. A future retention job can prune older cloud history if long-term archival is not desired.
 
 ## Known limitations
 
@@ -335,7 +351,7 @@ Adds Supabase Auth, authenticated cloud persistence, one-time local-to-cloud mig
 - Cloud sync currently uses a local migration marker rather than a server-side migration ledger.
 - Snapshot migration is intentionally append-only on first cloud migration, so repeated manual deletion of the local migration marker could duplicate historical snapshots.
 
-## Planned sequence after v5.5
+## Planned sequence after v5.6
 
 1. Verify Auth + RLS with real test accounts.
 2. Add background rule evaluation and notifications.
