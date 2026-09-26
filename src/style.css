@@ -53,3 +53,14 @@
 .periodTabs button{padding:7px 10px;border:1px solid #28362f;background:#0b100e;color:#71867c;font:inherit;font-size:11px;cursor:pointer}
 .periodTabs button.active{color:#56f59c;border-color:#3a6e54;background:#0e1712}
 @media(max-width:650px){.whatChangedHead{flex-direction:column}.periodTabs{width:100%}.periodTabs button{flex:1}}
+
+/* v6.2 decision/reassessment radar */
+.reassessRadar{margin-bottom:18px}
+.radarCols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:12px}
+.radarCols h4{font-size:10px;letter-spacing:.12em;color:#71867c;margin:0 0 6px}
+.radarRow{width:100%;display:grid;grid-template-columns:150px 1fr 16px;gap:12px;align-items:center;text-align:left;background:transparent;border:0;border-top:1px solid #1d2824;padding:13px 0;color:inherit;cursor:pointer}
+.radarRow>span{display:flex;flex-direction:column;gap:3px}.radarRow small{color:#6f8379;font-size:10px}.radarWhy{font-size:11px;color:#a5b5ad}
+.decisionSignal{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.decisionSignal>span{border:1px solid #26342e;background:#0c100f;padding:12px;display:flex;flex-direction:column;gap:4px}.decisionSignal small{font-size:9px;color:#6f8379;letter-spacing:.12em}.decisionSignal b{font-size:14px}
+.decisionMetrics{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.decisionMetrics span{border-top:1px solid #202c27;padding-top:7px;font-size:10px;color:#71867c;display:flex;flex-direction:column;gap:3px}.decisionMetrics b{font-size:12px}
+@media(max-width:800px){.radarCols{grid-template-columns:1fr}.decisionMetrics{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.radarRow{grid-template-columns:105px 1fr 12px}.decisionSignal{grid-template-columns:1fr}.decisionMetrics{grid-template-columns:repeat(2,1fr)}}

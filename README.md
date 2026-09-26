@@ -528,3 +528,19 @@ Future releases must preserve:
 1. The v5.5/v5.6 duplicate-snapshot migration compatibility guard.
 2. The monitor TypeScript numeric non-null/narrowing fixes.
 3. Current DefiLlama TVL uses `/tvl/{slug}` as a scalar number in both monitor and daily snapshot workers. Never substitute `/protocol/{slug}` for current TVL.
+
+
+## v6.2 Decision Radar
+
+v6.2 converts What Changed measurements into transparent reassessment prompts.
+
+- Dashboard Decision Radar has two separate lanes: `ENTRY RESEARCH` and `POSITIONS TO REVIEW`.
+- Entry research combines the existing qualitative Research Snapshot with observed fundamental change, FDV/TVL change, price-vs-fundamentals divergence, 50D/200D trend and saved buy rules.
+- Position review gives saved risk and take-profit rules priority, then checks fundamental deterioration and price outrunning fundamentals.
+- Asset pages show the signal, the reasons behind it, the comparison period and the underlying price/TVL/fees/revenue/FDV-TVL changes.
+- Labels intentionally say `Entry setup improving`, `Worth deeper entry review`, `Hold / monitor`, `Profit-taking review`, `Exit / thesis review`, etc. They are evidence-based prompts, not autonomous orders.
+- Confidence is lower when only Latest snapshot history exists and improves when fixed-period history is available.
+- No database or Edge Function changes are required for v6.2 itself.
+- v6.2 carries forward the deployed v6.1 Admin API user-enumeration fix in `daily-snapshot`.
+
+This is an important bridge toward the end goal, but it is not yet a complete "best buy now / sell now" engine. Exact unlock timing, broader capital-flow/regime inputs, and deeper fundamentals for AKT/LINK/TAO/TIA/SUI remain prerequisites before treating the radar as a comprehensive crypto decision layer.
