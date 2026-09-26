@@ -705,3 +705,7 @@ Single lifecycle:
 - Clicking a tracked Scanner asset opens its unified research detail.
 - Highest-priority Research continues to draw only from Active Research and can dynamically promote or drop assets based on evidence. Curated origin does not confer permanent priority.
 - Falling in Scanner rank does not automatically archive an asset. Scanner rank is relative triage; lifecycle changes remain user decisions informed by the evaluator.
+
+
+## v8.5 unified plans + owned priority
+Buy & Sell Plan now lives on every unified Research detail page. Plans persist CoinGecko identity so the five-minute monitor can evaluate price rules for dynamically researched assets. Owned assets are pinned to Highest-priority Research until ownership is unchecked/sold; deterioration remains visible and can still trigger reassessment. Portfolio now includes owned assets across the unified research universe.

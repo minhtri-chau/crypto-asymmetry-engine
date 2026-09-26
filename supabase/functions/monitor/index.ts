@@ -34,7 +34,7 @@ async function fundamentals(symbols:string[]){
  return out;
 }
 
-const ASSETS: Record<string,string> = {AAVE:"aave",PENDLE:"pendle",AERO:"aerodrome-finance",AKT:"akash-network",LINK:"chainlink",TAO:"bittensor",ONDO:"ondo-finance",TIA:"celestia",SUI:"sui"};
+const LEGACY_ASSETS: Record<string,string> = {AAVE:"aave",PENDLE:"pendle",AERO:"aerodrome-finance",AKT:"akash-network",LINK:"chainlink",TAO:"bittensor",ONDO:"ondo-finance",TIA:"celestia",SUI:"sui"};
 const n=(v:unknown)=>v===null||v===undefined||v===""?null:Number(v);
 const keyOf=(u:string,s:string,t:string)=>`${u}:${s}:${t}`;
 function secretKey(){const legacy=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");if(legacy)return legacy;try{return JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")||"{}").default||null}catch{return null}}
@@ -80,8 +80,9 @@ Deno.serve(async(req)=>{
   }
   if(!allPlans.length)return Response.json({ok:true,plans:0,rulesChecked:0,eventsCreated:0,staleResolved,at:now});
 
-  const symbols=[...new Set(allPlans.map((p:any)=>p.symbol).filter((s:string)=>ASSETS[s]))];
-  const ids=symbols.map(s=>ASSETS[s]).join(",");
+  const planId=(p:any)=>p.coingecko_id||LEGACY_ASSETS[p.symbol]||null;
+  const ids=[...new Set(allPlans.map((p:any)=>planId(p)).filter(Boolean))].join(",");
+  if(!ids)return Response.json({ok:true,plans:allPlans.length,rulesChecked:0,eventsCreated:0,staleResolved,at:now,note:"No plans have a CoinGecko identity yet."});
   const cgHeaders:Record<string,string>={accept:"application/json"};
   const cgKey=Deno.env.get("COINGECKO_DEMO_API_KEY");
   if(cgKey)cgHeaders["x-cg-demo-api-key"]=cgKey;
@@ -102,7 +103,7 @@ Deno.serve(async(req)=>{
   const stateMap=new Map(allStates.filter((x:any)=>validKeys.has(keyOf(x.user_id,x.symbol,x.rule_type))).map((x:any)=>[keyOf(x.user_id,x.symbol,x.rule_type),x]));
   let created=0,checked=0,thresholdResets=0;
   for(const p of allPlans){
-    const m=markets[ASSETS[p.symbol]],f=fund[p.symbol]||{};
+    const m=markets[planId(p)],f=fund[p.symbol]||{};
     if(!m)continue;
     const rules:any[]=[];
     if(n(p.buy_price)!=null)rules.push(["buy_price",m.current_price<=n(p.buy_price)!,m.current_price,n(p.buy_price),"Buy zone hit",`Price ${m.current_price} is at or below saved buy threshold ${p.buy_price}.`]);

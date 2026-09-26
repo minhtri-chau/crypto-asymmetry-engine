@@ -205,3 +205,7 @@ alter table public.research_assets add column if not exists risk_notes text;
 -- v8.4 unified asset pipeline (additive, safe to re-run)
 alter table public.research_assets add column if not exists research_origin text not null default 'discovery'
   check (research_origin in ('curated','discovery','manual'));
+
+
+-- v8.5 unified plans (additive, safe to re-run)
+alter table public.plans add column if not exists coingecko_id text;

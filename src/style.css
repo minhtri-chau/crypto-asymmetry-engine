@@ -86,3 +86,6 @@
 
 /* v8.4 unified asset pipeline */
 .scannerHero{margin-bottom:24px}.lifecycleBtn{background:transparent;border:0;cursor:pointer;padding:0;text-align:left}.discoveryTable{overflow-x:auto}.discoveryRow{min-width:1180px}
+
+/* v8.5 */
+.ownershipNote{border-color:#28543c}.ownershipNote p{max-width:760px}
