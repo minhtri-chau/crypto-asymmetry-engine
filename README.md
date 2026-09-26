@@ -567,3 +567,15 @@ v6.3 tightens the Decision Radar before adding more breadth.
 4. Do not recreate either Cron job. The existing daily schedule will call the updated function automatically.
 5. The five-minute `monitor` function does not need redeployment for v6.3.
 6. Existing historical snapshots will naturally have blank 7D activity fields. The 7D fee/revenue comparison becomes available after new v6.3 snapshots accumulate; the UI will not fabricate missing history.
+
+
+## v6.5 fundamentals + immediate 7D evidence
+
+- Moves fundamentals aggregation behind `/api/fundamentals`.
+- Adds Chainlink protocol fundamentals.
+- Adds Sui and Celestia chain TVL/activity adapters.
+- Adds Bittensor chain TVL plus a clearly labeled Chutes paid-AI-revenue ecosystem proxy.
+- Adds live Akash provider CPU/GPU utilization from Akash's public Console API. It is displayed but is not used as a historical growth signal because the source does not provide the required period history.
+- Uses DefiLlama's source-native `change_7dover7d` where available, so fee/revenue momentum can be evaluated immediately instead of waiting seven days for local snapshots.
+- Snapshot history remains the fallback and is still useful for price, valuation and independent auditability.
+- No database migration, Supabase Edge Function change or Cron change is required for v6.5.
