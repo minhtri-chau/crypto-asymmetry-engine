@@ -193,3 +193,10 @@ alter table public.research_evaluations add column if not exists fdv numeric;
 alter table public.research_evaluations add column if not exists volume_24h numeric;
 alter table public.research_evaluations add column if not exists tvl numeric;
 alter table public.research_evaluations add column if not exists fees_30d numeric;
+
+
+-- v8.3 deeper dynamic-research notes (additive, safe to re-run)
+alter table public.research_assets add column if not exists catalysts text;
+alter table public.research_assets add column if not exists value_capture text;
+alter table public.research_assets add column if not exists unlock_notes text;
+alter table public.research_assets add column if not exists risk_notes text;

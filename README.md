@@ -671,3 +671,19 @@ v8.2 begins removing the split between the original curated nine and promoted Di
 - User-facing `Live Evidence` wording is renamed `Setup Evidence`; `Coverage` is labeled `Data Coverage` so score strength is not confused with evidence completeness.
 - The research evaluator now persists market cap, FDV, volume, TVL and 30d fees for richer historical detail going forward.
 - Missing catalysts, value capture, exact unlock timing and qualitative risks remain explicit research gaps rather than fabricated data.
+
+
+## v8.3 dynamic research promotion
+
+v8.3 makes the Dashboard's Highest-priority research shelf dynamic instead of hard-coding the first five curated assets.
+
+- Only promoted Active Research assets can qualify for the shelf.
+- Qualification is recalculated from the latest Setup Evidence, Data Coverage, evidence change, and evaluator state.
+- `strengthening` receives a transparent priority boost; `research_needed`, `reassess`, `archive_candidate`, and `reduce_exit_review` are penalized.
+- Assets with Setup Evidence below 55, Data Coverage below 63%, a deterioration/repricing state, or Watchlist status do not qualify for Highest-priority research.
+- There is intentionally no requirement that five assets be shown. If nothing clears the bar, the dashboard says so rather than manufacturing a top pick.
+- Active Research assets that fall below the promotion bar appear in Promotion Review. The user still decides whether to keep researching, move to Watchlist, or Archive.
+- Active Research is sorted by the same dynamic priority score.
+- Dynamic detail pages now include editable catalysts, token value capture, unlock/dilution notes, and qualitative risks. Missing research dimensions remain explicitly missing.
+
+Dynamic Priority is a research-routing score, not an Entry Score or a trade recommendation. It changes what deserves attention, not what the user must buy or sell.
