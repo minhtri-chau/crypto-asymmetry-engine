@@ -544,3 +544,26 @@ v6.2 converts What Changed measurements into transparent reassessment prompts.
 - v6.2 carries forward the deployed v6.1 Admin API user-enumeration fix in `daily-snapshot`.
 
 This is an important bridge toward the end goal, but it is not yet a complete "best buy now / sell now" engine. Exact unlock timing, broader capital-flow/regime inputs, and deeper fundamentals for AKT/LINK/TAO/TIA/SUI remain prerequisites before treating the radar as a comprehensive crypto decision layer.
+
+
+## v6.3 Signal quality cleanup
+
+v6.3 tightens the Decision Radar before adding more breadth.
+
+- 7D reassessment now uses `fees7d` / `revenue7d` rather than changes in overlapping rolling-30D totals. Daily snapshots persist those 7D totals so the current 7-day window can be compared with the prior saved 7-day window.
+- 30D reassessment continues to use 30D fees/revenue.
+- Static Research Score no longer contributes points that can qualify an asset for Entry Research by itself. It remains context. Entry Research requires at least one fresh positive condition such as improving fundamentals, valuation compression, favorable price/fundamental divergence, or a triggered saved buy rule.
+- A constructive trend only adds confirmation after fresh positive evidence exists.
+- Plans now have an explicit `I currently own this asset` flag. Portfolio and `POSITIONS TO REVIEW` include only assets marked owned.
+- AKT, LINK, TAO, TIA and SUI are labeled `Limited evidence` in the Decision Radar until protocol-specific fundamentals are connected. Price/trend alone no longer masquerades as a fundamental setup.
+- Confidence is explicitly `limited` for those thin-data assets.
+- Existing plans migrate safely with `is_owned=false`; users opt holdings in deliberately.
+
+### v6.3 deployment
+
+1. Push v6.3 to GitHub while preserving the genuine current `package-lock.json`.
+2. Run the updated `supabase.sql` once. The migration only adds `plans.is_owned`, `snapshots.fees_7d`, and `snapshots.revenue_7d`.
+3. Redeploy the existing `daily-snapshot` Edge Function from the repo so future snapshots store the new 7D activity fields.
+4. Do not recreate either Cron job. The existing daily schedule will call the updated function automatically.
+5. The five-minute `monitor` function does not need redeployment for v6.3.
+6. Existing historical snapshots will naturally have blank 7D activity fields. The 7D fee/revenue comparison becomes available after new v6.3 snapshots accumulate; the UI will not fabricate missing history.

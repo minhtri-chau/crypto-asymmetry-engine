@@ -24,7 +24,7 @@ Deno.serve(async(req)=>{
     fetch(`https://api.llama.fi/summary/fees/${slug}?dataType=dailyFees`).then(r=>r.ok?r.json():null).catch(()=>null),
     fetch(`https://api.llama.fi/summary/fees/${slug}?dataType=dailyRevenue`).then(r=>r.ok?r.json():null).catch(()=>null)
    ]);
-   fund[sym]={tvl:typeof tvl==="number"?tvl:null,fees30d:fees?.total30d??null,revenue30d:rev?.total30d??null};
+   fund[sym]={tvl:typeof tvl==="number"?tvl:null,fees30d:fees?.total30d??null,fees7d:fees?.total7d??null,revenue30d:rev?.total30d??null,revenue7d:rev?.total7d??null};
  }));
  // auth.users is not exposed through the Data API; list accounts with the Admin API instead.
  const users:{id:string}[]=[];
@@ -43,7 +43,7 @@ Deno.serve(async(req)=>{
    for(const[symbol,id]of Object.entries(ASSETS)){
      if(seen.has(symbol)){skipped++;continue}
      const m=markets[id];if(!m)continue;const f=fund[symbol]||{};
-     rows.push({user_id:u.id,symbol,captured_at:capturedAt,price:m.current_price,market_cap:m.market_cap,fdv:m.fully_diluted_valuation,tvl:f.tvl??null,fees_30d:f.fees30d??null,revenue_30d:f.revenue30d??null,circulating:m.circulating_supply??null,total_supply:m.total_supply??null,max_supply:m.max_supply??null});
+     rows.push({user_id:u.id,symbol,captured_at:capturedAt,price:m.current_price,market_cap:m.market_cap,fdv:m.fully_diluted_valuation,tvl:f.tvl??null,fees_30d:f.fees30d??null,fees_7d:f.fees7d??null,revenue_30d:f.revenue30d??null,revenue_7d:f.revenue7d??null,circulating:m.circulating_supply??null,total_supply:m.total_supply??null,max_supply:m.max_supply??null});
    }
    if(rows.length){const{error}=await db.from("snapshots").insert(rows);if(error)return Response.json({error:error.message},{status:500});inserted+=rows.length}
  }
