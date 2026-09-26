@@ -11,7 +11,9 @@ select cron.schedule(
       'Content-Type','application/json',
       'x-monitor-secret',(select decrypted_secret from vault.decrypted_secrets where name='monitor_cron_secret')
     ),
-    body := '{}'::jsonb
+    body := '{}'::jsonb,
+    -- pg_net defaults to 5s; this run downloads the DefiLlama protocol list plus per-asset fees.
+    timeout_milliseconds := 30000
   );
   $$
 );
