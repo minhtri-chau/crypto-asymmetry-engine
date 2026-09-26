@@ -618,3 +618,16 @@ Push the frontend and `api/discovery.js` to GitHub `main`; Vercel deploys them t
 
 ## v7.1
 Discovery now uses relative ranking, much stronger recent-gain penalties, best-effort DefiLlama TVL/fee evidence, sequential CoinGecko requests, and server-only CoinGecko Demo-key support. It remains research triage, not a buy score.
+
+
+## v7.2: rank is not quality
+
+v7.2 separates two concepts that v7.1 mixed together:
+
+- **Research Priority** is the candidate's relative rank among today's eligible Coinbase universe. Someone will always be #1.
+- **Asymmetry Evidence** is an absolute 0-100 evidence score based on the underlying screen. A weak market can therefore have a #1 candidate with a mediocre evidence score.
+- **Evidence Coverage** shows how much of the intended evidence set is actually present. Market-only candidates no longer look equally complete beside candidates with matched fundamentals.
+- The user's production identity fix is preserved: DefiLlama matching uses CoinGecko ID first, with ticker fallback only for child protocols in a named project family.
+- The user's production stablecoin fix is preserved: expanded stablecoin exclusions plus a near-$1/low-volatility peg heuristic.
+- Large recent gains retain the strong v7.1 extension penalty.
+- Chain transaction fees are activity evidence and must not be interpreted as equivalent to protocol/token-holder revenue.
