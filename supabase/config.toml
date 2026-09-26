@@ -3,3 +3,6 @@ verify_jwt = false
 
 [functions.daily-snapshot]
 verify_jwt = false
+
+[functions.research-monitor]
+verify_jwt = false

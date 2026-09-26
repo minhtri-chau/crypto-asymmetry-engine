@@ -631,3 +631,27 @@ v7.2 separates two concepts that v7.1 mixed together:
 - The user's production stablecoin fix is preserved: expanded stablecoin exclusions plus a near-$1/low-volatility peg heuristic.
 - Large recent gains retain the strong v7.1 extension penalty.
 - Chain transaction fees are activity evidence and must not be interpreted as equivalent to protocol/token-holder revenue.
+
+
+## v8 Research Pipeline
+
+v8 turns Discovery into a persistent lifecycle.
+
+`Discovery -> Active Research -> Watchlist -> Archived`
+
+A signed-in user can promote a Discovery candidate into Active Research. The asset then remains in Supabase even if it disappears from the current Discovery top 25.
+
+The new `research-monitor` Edge Function evaluates every non-archived research asset daily using the same early-asymmetry concepts as Discovery: liquidity, supply overhang, mild price confirmation, strong extension penalties, and identity-safe DefiLlama fundamentals where available. It records an immutable evaluation history.
+
+Evaluation states:
+- `strengthening`: evidence and coverage support deeper entry research.
+- `monitor`: no material deterioration signal.
+- `reassess`: evidence fell materially or price appears substantially repriced.
+- `archive_candidate`: a non-owned asset has sufficiently weak, well-covered evidence to consider retiring.
+- `reduce_exit_review`: the same deterioration on an owned asset. This is a review prompt, not an automatic sell instruction.
+
+Missing fundamentals are treated as missing evidence. Low coverage limits confidence; it is not described as proof of weak fundamentals.
+
+Research assets can be marked Owned with amount and entry price, allowing the pipeline to show P/L and change deterioration language from archive review to reduce/exit review.
+
+The original nine curated research assets remain intact in v8. Dynamic research candidates are a separate persistent layer so the existing monitoring and migration logic is not destabilized.
