@@ -1,4 +1,4 @@
-# Crypto Asymmetry Engine v5.6
+# Crypto Asymmetry Engine v5.7
 
 Crypto Asymmetry Engine is a rules-first crypto research and decision-support dashboard. It is intentionally **not** a "magic buy/sell signal" product. The design goal is to make the thesis, valuation, buy rules, sell rules and thesis-break conditions explicit in advance, then surface when those rules or underlying evidence change.
 
@@ -325,6 +325,11 @@ Added Supabase Auth, authenticated cloud persistence, one-time local-to-cloud mi
 ### v5.6
 Hardens persistence: newest-180-per-asset cloud loading, account-scoped caches, isolated signed-out guest edits, shared-browser migration protection, `.gitignore`, exact dependency pins and committed npm lockfile.
 
+A compatibility guard was subsequently added to v5.6: if the browser already completed the v5.5 cloud migration (`cae_cloud_migrated_<uid>`), v5.6 must **not** re-upload the legacy snapshot keys. This guard is required in all later versions.
+
+### v5.7
+Adds database-side snapshot retention, upgrades Vite from 7.1.7 to 7.3.6, preserves the v5.5 migration compatibility guard, and documents Supabase Scheduler as the intended home for future background monitoring.
+
 ## v5.6 persistence hardening
 
 v5.6 fixes four persistence/build issues found during review:
@@ -338,6 +343,49 @@ v5.6 fixes four persistence/build issues found during review:
 
 The database may retain more than 180 snapshots per asset. The UI intentionally loads only the newest 180 per asset. A future retention job can prune older cloud history if long-term archival is not desired.
 
+
+## v5.7 database retention and build hardening
+
+### Snapshot retention
+
+The database now includes `public.prune_snapshot_history()` plus an `AFTER INSERT` trigger. After each cloud snapshot insert, Postgres removes rows older than the newest **180 snapshots for that same user and symbol**.
+
+This makes the database retention policy match the browser/UI history policy and prevents unbounded snapshot growth. Retention is enforced in Supabase rather than by browser JavaScript, so closing the dashboard does not disable it.
+
+The pruning function is `SECURITY DEFINER`, has a fixed `search_path`, accepts no user-controlled identifiers, and derives `user_id` and `symbol` only from the row that fired the trigger. Execute permission is revoked from `public`, `anon`, and `authenticated`; it is invoked only by the trigger.
+
+**Deployment step:** run the updated `supabase.sql` in the Supabase SQL Editor after deploying v5.7. Existing rows above the 180-row limit are pruned the next time a new snapshot is inserted for that user/symbol. If immediate cleanup of old rows is desired, run a one-time cleanup separately.
+
+### Migration compatibility rule
+
+Do not remove this behavior:
+
+```text
+If cae_cloud_migrated_<uid> exists, the browser already migrated under v5.5.
+Mark the legacy cache claimed and do not insert those legacy snapshots again.
+```
+
+v5.5 wrote cloud data back into the old browser keys. Without this guard, a later migration version can mistake those rows for never-uploaded legacy data and duplicate them.
+
+### Vite security update
+
+`package.json` moves Vite from `7.1.7` to `7.3.6`.
+
+The repository's **real npm-generated `package-lock.json` is the canonical lockfile**. The v5.7 patch package intentionally does not replace it with a generated placeholder. After applying the patch, run:
+
+```bash
+npm install
+npm run build
+```
+
+Commit the resulting real `package-lock.json` only after the build succeeds.
+
+### Background monitoring direction
+
+Future recurring rule evaluation should run from **Supabase Scheduler / pg_cron**, not from a browser timer. The browser remains the control panel; scheduled database/server work should continue when the dashboard is closed.
+
+The future scheduler should evaluate user-defined rules and create reassessment events. It should not place trades or infer undocumented buy/sell decisions.
+
 ## Known limitations
 
 - Alerts are still evaluated only while the application is running.
@@ -348,13 +396,13 @@ The database may retain more than 180 snapshots per asset. The UI intentionally 
 - Fundamental coverage is incomplete for AKT, LINK, TAO, TIA and SUI.
 - Entry Score remains locked.
 - CoinGecko free-tier historical requests can still occasionally fail.
-- Cloud sync currently uses a local migration marker rather than a server-side migration ledger.
-- Snapshot migration is intentionally append-only on first cloud migration, so repeated manual deletion of the local migration marker could duplicate historical snapshots.
+- Cloud sync currently uses local migration markers rather than a server-side migration ledger.
+- Manually deleting migration markers can defeat migration safeguards and should not be treated as a supported reset mechanism.
 
-## Planned sequence after v5.6
+## Planned sequence after v5.7
 
-1. Verify Auth + RLS with real test accounts.
-2. Add background rule evaluation and notifications.
+1. Run the v5.7 Supabase retention migration and verify Auth + RLS with real test accounts.
+2. Add Supabase-scheduled background rule evaluation and notifications.
 3. Connect a reliable unlock provider.
 4. Add stablecoin-flow and broader market-regime inputs.
 5. Add fundamentals for AKT, LINK, TAO, TIA and SUI.
