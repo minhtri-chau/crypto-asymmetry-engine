@@ -1,23 +1,24 @@
-# Crypto Asymmetry Engine v5.2
+# Crypto Asymmetry Engine v5.3
 
-Rules-first decision support plus the first backend boundary.
+Rules + trend/regime + persistence foundation.
 
-## New
-- Buy/sell plans per asset
-- Buy-price, take-profit, stop-loss and FDV/TVL rules
-- Thesis alert based on fee deterioration from the saved baseline
-- Portfolio/Plans screen with triggered-rule indicators
-- Snapshot history instead of a single overwritten snapshot, retaining up to 180 per asset
-- Vercel `/api/market` proxy scaffold
-- Vercel `/api/evidence` source-status endpoint
-- Unlock/flow/catalyst adapter boundary so licensed/stable providers can be added without rewriting UI
+## v5.2 bug fixes
+- Adds Bought at ($), enabling Portfolio P/L
+- Rule priority is risk -> profit -> buy, so a stop-loss cannot be hidden by a buy-zone hit
+- Automatically migrates legacy `cae_snapshots` into snapshot history
+- Keeps local plans/snapshots working while database setup is pending
 
-## Intentional limitation
-No unlock schedule is fabricated. Public DefiLlama unlock pages are useful for research, but stable programmatic unlock access is a premium endpoint. v5.2 therefore exposes an adapter-ready backend status instead of scraping the site.
+## v5.3
+- Server-side 50-day and 200-day moving averages
+- 30-day asset return and relative strength vs Bitcoin
+- BTC trend-based market regime
+- `/api/trends` and `/api/regime` with Vercel caching
+- Supabase/Postgres schema for plans and snapshot history
+- Existing `/api/evidence` remains the adapter boundary for unlocks, flows and catalysts
 
-Next:
-1. Wire frontend market calls through `/api/market`
-2. Choose persistent DB (Supabase/Postgres is a good fit)
-3. Add licensed/reliable unlock provider
-4. Add trend/relative-strength and market-regime feeds
-5. Persist plans/snapshots server-side
+## Not yet claimed
+- No reliable automatic unlock schedule until a stable/licensed provider is connected
+- No background push notifications yet
+- No fear/greed or stablecoin-flow regime input yet
+- AKT/LINK/TAO/TIA/SUI still need asset-specific fundamental adapters
+- Supabase schema is included, but frontend remains local-first until credentials/auth are configured
