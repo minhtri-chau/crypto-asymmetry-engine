@@ -591,3 +591,10 @@ v6.3 tightens the Decision Radar before adding more breadth.
 - Monitor expands protocol TVL/fee rules to LINK, and chain fee monitoring to SUI/TIA/TAO. SUI may use chain TVL for FDV/TVL; TAO and TIA deliberately do not because their chain-TVL semantics make that ratio misleading or unusable.
 - Existing Cron schedules do not change. Redeploy both `monitor` and `daily-snapshot` Edge Functions because their code and shared helper changed.
 - No database migration is required.
+
+
+## v6.6.1 hotfix
+- Edge Functions are self-contained for Supabase Dashboard copy/paste deployment. `_shared/fundamentals.ts` is no longer required.
+- Restores aligned 7D FDV/TVL change in Decision Radar using `(1 + 7D price)/(1 + 7D TVL) - 1`.
+- Applies that valuation signal only to AAVE, PENDLE, AERO, LINK, ONDO and SUI. TAO/TIA remain excluded because their chain-TVL semantics are not suitable for this valuation ratio.
+- No SQL or Cron changes.

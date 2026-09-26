@@ -1,5 +1,38 @@
 import { createClient } from "npm:@supabase/supabase-js@2.117.1";
-import { fundamentals } from "../_shared/fundamentals.ts";
+
+const PROTOCOLS:Record<string,string>={AAVE:"aave",PENDLE:"pendle",AERO:"aerodrome",LINK:"chainlink",ONDO:"ondo-finance"};
+const CHAINS:Record<string,{chain:string,fees:string,tvlRule:boolean}>={
+ SUI:{chain:"Sui",fees:"sui",tvlRule:true},
+ TIA:{chain:"Celestia",fees:"celestia",tvlRule:false},
+ TAO:{chain:"Bittensor",fees:"chutes",tvlRule:false}
+};
+const fn=(v:any)=>v===null||v===undefined||v===""?null:Number(v);
+async function fj(url:string){try{const r=await fetch(url);return r.ok?await r.json():null}catch{return null}}
+async function fundamentals(symbols:string[]){
+ const out:Record<string,any>={};
+ await Promise.all(symbols.map(async s=>{
+  if(PROTOCOLS[s]){
+   const slug=PROTOCOLS[s],[tvl,fees,rev]=await Promise.all([
+    fj(`https://api.llama.fi/tvl/${slug}`),
+    fj(`https://api.llama.fi/summary/fees/${slug}?dataType=dailyFees`),
+    fj(`https://api.llama.fi/summary/fees/${slug}?dataType=dailyRevenue`)
+   ]);
+   out[s]={tvl:typeof tvl==="number"?tvl:null,fees30d:fn(fees?.total30d),fees7d:fn(fees?.total7d),revenue30d:fn(rev?.total30d),revenue7d:fn(rev?.total7d),tvlRule:true,feeRule:true};
+   return;
+  }
+  const c=CHAINS[s];
+  if(c){
+   const[hist,fees,rev]=await Promise.all([
+    fj(`https://api.llama.fi/v2/historicalChainTvl/${encodeURIComponent(c.chain)}`),
+    fj(`https://api.llama.fi/summary/fees/${c.fees}?dataType=dailyFees`),
+    fj(`https://api.llama.fi/summary/fees/${c.fees}?dataType=dailyRevenue`)
+   ]);
+   const rows=Array.isArray(hist)?hist:[],last=rows.at(-1),tvl=fn(last?.tvl??last?.[1]);
+   out[s]={tvl,fees30d:fn(fees?.total30d),fees7d:fn(fees?.total7d),revenue30d:fn(rev?.total30d),revenue7d:fn(rev?.total7d),tvlRule:c.tvlRule,feeRule:true};
+  }
+ }));
+ return out;
+}
 
 const ASSETS:Record<string,string>={AAVE:"aave",PENDLE:"pendle",AERO:"aerodrome-finance",AKT:"akash-network",LINK:"chainlink",TAO:"bittensor",ONDO:"ondo-finance",TIA:"celestia",SUI:"sui"};
 function secretKey(){const legacy=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");if(legacy)return legacy;try{return JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")||"{}").default||null}catch{return null}}
