@@ -655,3 +655,7 @@ Missing fundamentals are treated as missing evidence. Low coverage limits confid
 Research assets can be marked Owned with amount and entry price, allowing the pipeline to show P/L and change deterioration language from archive review to reduce/exit review.
 
 The original nine curated research assets remain intact in v8. Dynamic research candidates are a separate persistent layer so the existing monitoring and migration logic is not destabilized.
+
+
+## v8.1
+Active Research and Watchlist assets now appear on Dashboard. Promotion no longer attempts a client write to the server-owned evaluation ledger. Missing returns remain null for honest Coverage. Low coverage becomes `research_needed`; archive/reduce-exit requires concrete, well-covered deterioration plus a material decline. The 30-second research-monitor Cron timeout is preserved.

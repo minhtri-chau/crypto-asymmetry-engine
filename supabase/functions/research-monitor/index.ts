@@ -5,24 +5,29 @@ async function fj(url:string,h:Record<string,string>={accept:"application/json"}
 function secretKey(){const legacy=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");if(legacy)return legacy;try{return JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")||"{}").default||null}catch{return null}}
 function chart7(s:any){const c=(s?.totalDataChart||[]).filter((p:any)=>Array.isArray(p)&&p.length===2);if(c.length<14)return null;const sum=(a:any[])=>a.reduce((t,p)=>t+(num(p[1])||0),0),last=sum(c.slice(-7)),prev=sum(c.slice(-14,-7));return prev>0?(last/prev-1)*100:null}
 function protocolMap(ps:any[]){const byId=new Map(),bySym=new Map(),keep=(m:Map<string,any>,k:string,r:any)=>{const c=m.get(k);if(!c||(r.tvl||0)>(c.tvl||0))m.set(k,r)};for(const p of ps||[]){if(!p?.slug||p.category==="Treasury")continue;const r={slug:p.slug,tvl:num(p.tvl),tvl7d:num(p.change_7d)};if(p.gecko_id)keep(byId,p.gecko_id,r);const s=String(p.symbol||"").toUpperCase();if(s&&p.parentProtocol)keep(bySym,s,r)}return{x:(id:string,s:string)=>byId.get(id)||bySym.get(s)}}
-function extensionPenalty(r7:number,r30:number){const p7=r7>60?30:r7>40?23:r7>25?14:r7>15?5:0,p30=r30>150?40:r30>100?32:r30>70?24:r30>45?15:r30>30?8:0;return Math.max(p7,p30)}
+function extensionPenalty(r7:number|null,r30:number|null){const p7=r7==null?0:r7>60?30:r7>40?23:r7>25?14:r7>15?5:0,p30=r30==null?0:r30>150?40:r30>100?32:r30>70?24:r30>45?15:r30>30?8:0;return Math.max(p7,p30)}
 function score(x:any,f:any){
- const vol=x.market_cap>0?x.total_volume/x.market_cap:0,r7=num(x.price_change_percentage_7d_in_currency)||0,r30=num(x.price_change_percentage_30d_in_currency)||0,d=x.fully_diluted_valuation>0&&x.market_cap>0?x.fully_diluted_valuation/x.market_cap:null;
+ const vol=x.market_cap>0?x.total_volume/x.market_cap:0,r7=num(x.price_change_percentage_7d_in_currency),r30=num(x.price_change_percentage_30d_in_currency),d=x.fully_diluted_valuation>0&&x.market_cap>0?x.fully_diluted_valuation/x.market_cap:null;
  const liquidity=clamp(vol/.10,0,1)*18,size=x.market_cap>0?clamp((Math.log10(x.market_cap)-7.3)/2.7,0,1)*10:0,supply=d==null?3:d<=1.2?10:d<=1.5?8:d<=2?5:d<=3?2:0;
- const confirmation=(r7>=-8&&r7<=15?8:r7>15&&r7<=25?5:r7<-8?2:0)+(r30>=-15&&r30<=30?7:r30>30&&r30<=45?3:r30<-15?1:0);
+ const confirmation=(r7==null?0:r7>=-8&&r7<=15?8:r7>15&&r7<=25?5:r7<-8?2:0)+(r30==null?0:r30>=-15&&r30<=30?7:r30>30&&r30<=45?3:r30<-15?1:0);
  let fundamental=0;if(f){if(f.tvl7d!=null)fundamental+=f.tvl7d>15?10:f.tvl7d>5?8:f.tvl7d>0?5:f.tvl7d>-10?2:0;if(f.fees7dChange!=null)fundamental+=f.fees7dChange>30?12:f.fees7dChange>10?10:f.fees7dChange>0?6:f.fees7dChange>-15?2:0;if(f.fees30d!=null&&x.fully_diluted_valuation>0){const y=f.fees30d*12/x.fully_diluted_valuation;fundamental+=y>.15?8:y>.07?6:y>.03?4:y>.01?2:0}}
  const penalty=extensionPenalty(r7,r30),raw=liquidity+size+supply+confirmation+fundamental-penalty,evidence=Math.round(clamp(raw/83*100,0,100));
  const observed=[vol,x.market_cap,d,r7,r30,f?.tvl7d,f?.fees7dChange,f?.fees30d],coverage=Math.round(observed.filter(v=>v!=null).length/8*100);
- return{evidence,coverage,r7,r30,d,penalty}
+ return{evidence,coverage,r7,r30,d,penalty,fees7dChange:f?.fees7dChange??null,tvl7d:f?.tvl7d??null}
 }
-function state(s:any,owned:boolean,prev:number|null){
- const delta=prev==null?null:s.evidence-prev;
- if(s.evidence<35&&s.coverage>=63)return{status:owned?"reduce_exit_review":"archive_candidate",reason:owned?"Evidence has weakened materially; review the thesis and predefined exit rules.":"Evidence is weak enough to consider retiring this research candidate."};
- if(s.penalty>=24)return{status:owned?"reduce_exit_review":"reassess",reason:"Price appears substantially repriced; reassess valuation versus fundamentals."};
+function state(s:any,owned:boolean,prev:any){
+ const prevScore=num(prev?.evidence_score),delta=prevScore==null?null:s.evidence-prevScore;
+ const fundamentalDrop=(s.fees7dChange!=null&&s.fees7dChange<=-25)||(s.tvl7d!=null&&s.tvl7d<=-20);
+ const concreteNegative=s.penalty>=24||fundamentalDrop;
+ const sustainedDeterioration=prevScore!=null&&delta!=null&&delta<=-12&&s.coverage>=75&&concreteNegative;
+ if(sustainedDeterioration)return{status:owned?"reduce_exit_review":"archive_candidate",reason:owned?"Concrete, well-covered deterioration persisted versus the prior evaluation; review the thesis and predefined exit rules.":"Concrete, well-covered deterioration persisted versus the prior evaluation; consider retiring this research candidate."};
+ if(s.penalty>=24)return{status:"reassess",reason:"Price appears substantially repriced; reassess valuation versus fundamentals."};
+ if(fundamentalDrop)return{status:"reassess",reason:"Observed fundamentals deteriorated materially; review whether the thesis is weakening."};
  if(s.evidence>=65&&s.coverage>=75)return{status:"strengthening",reason:"Broad evidence is comparatively strong with good coverage; deepen entry research."};
  if(delta!=null&&delta<=-12)return{status:"reassess",reason:`Evidence fell ${Math.abs(Math.round(delta))} points since the prior evaluation; review what changed.`};
- if(delta!=null&&delta>=10)return{status:"strengthening",reason:`Evidence improved ${Math.round(delta)} points since the prior evaluation.`};
- return{status:"monitor",reason:s.coverage<63?"Evidence coverage is still incomplete; keep researching rather than treating missing data as weakness.":"No hard thesis deterioration signal; continue monitoring."}
+ if(delta!=null&&delta>=10&&s.coverage>=75)return{status:"strengthening",reason:`Evidence improved ${Math.round(delta)} points with sufficient coverage.`};
+ if(s.coverage<75)return{status:"research_needed",reason:"Evidence coverage is incomplete. Missing evidence is uncertainty, not negative evidence; continue researching."};
+ return{status:"monitor",reason:"No hard thesis deterioration signal; continue monitoring."}
 }
 Deno.serve(async req=>{
  if(req.method!=="POST")return new Response("Method not allowed",{status:405});
@@ -36,7 +41,7 @@ Deno.serve(async req=>{
  for(const a of assets){
   const m=mm.get(a.coingecko_id);if(!m)continue;const p=pm.x(a.coingecko_id,a.symbol);let f:any=null;
   if(p){const fees=await fj(`https://api.llama.fi/summary/fees/${p.slug}?dataType=dailyFees`);f={tvl7d:p.tvl7d,fees30d:num(fees?.total30d),fees7dChange:num(fees?.change_7dover7d)??chart7(fees)}}
-  const s=score(m,f),{data:prior}=await db.from("research_evaluations").select("evidence_score").eq("research_asset_id",a.id).order("evaluated_at",{ascending:false}).limit(1).maybeSingle(),st=state(s,!!a.is_owned,num(prior?.evidence_score));
+  const s=score(m,f),{data:prior}=await db.from("research_evaluations").select("evidence_score,evidence_coverage,status").eq("research_asset_id",a.id).order("evaluated_at",{ascending:false}).limit(1).maybeSingle(),st=state(s,!!a.is_owned,prior);
   const{error:ie}=await db.from("research_evaluations").insert({user_id:a.user_id,research_asset_id:a.id,evidence_score:s.evidence,evidence_coverage:s.coverage,price:m.current_price,return_7d:s.r7,return_30d:s.r30,fees_7d_change:f?.fees7dChange??null,tvl_7d_change:f?.tvl7d??null,dilution:s.d,status:st.status,reason:st.reason});if(!ie)evaluated++;
  }
  return Response.json({ok:true,evaluated,coinGeckoDemoKey:!!cg,at:new Date().toISOString()})
