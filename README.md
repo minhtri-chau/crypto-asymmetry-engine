@@ -497,3 +497,34 @@ Future releases must preserve all three known fixes:
 1. Keep the v5.5/v5.6 duplicate-snapshot migration compatibility guard.
 2. Keep the monitor TypeScript numeric non-null/narrowing fixes.
 3. For current DefiLlama TVL in the monitor, use `/tvl/{slug}` and treat the response as a scalar number. Do not replace it with `/protocol/{slug}`, which returns historical TVL series data.
+
+
+## v6.1 Daily memory + fixed comparison periods
+
+v6.1 gives What Changed a regular clock instead of relying only on manual saves.
+
+- New `daily-snapshot` Supabase Edge Function captures one snapshot per tracked asset per authenticated account per UTC day.
+- A separate Cron job calls it daily at 00:15 UTC.
+- It reuses the existing `snapshots` table and the v5.7 180-row-per-user/symbol retention trigger, so no schema migration is required.
+- Manual snapshot saving remains available.
+- Daily capture skips a symbol if that account already has a snapshot for that UTC day, preventing the scheduled run from adding a second daily row after a manual save.
+- What Changed now offers `Latest`, `7D`, and `30D` baselines.
+- 7D/30D select the closest stored snapshot at or before the target date. Until enough daily history exists, the UI says the baseline is unavailable instead of pretending a shorter period is equivalent.
+- The UI labels comparisons `LIVE + SNAPSHOT` when current feeds are available and `SNAPSHOT-ONLY FALLBACK` when it must rely on stored observations.
+
+### v6.1 deployment
+
+1. Push the frontend and new Supabase files to GitHub `main`, preserving the genuine existing `package-lock.json`.
+2. In Supabase Edge Functions, create/deploy a new function named exactly `daily-snapshot` from `supabase/functions/daily-snapshot/index.ts`.
+3. Keep legacy JWT verification OFF for `daily-snapshot`, matching `supabase/config.toml`. The function authenticates the scheduled call with the existing `MONITOR_CRON_SECRET`.
+4. No new secret is required. It reuses `MONITOR_CRON_SECRET`, and optionally uses the existing `COINGECKO_DEMO_API_KEY` if configured.
+5. Run `supabase/daily-snapshot-cron.sql` once in the SQL Editor. It reuses the existing Vault secrets `project_url` and `monitor_cron_secret`.
+6. The schedule is `15 0 * * *`, or 00:15 UTC daily. Supabase Cron uses standard cron scheduling; inspect the job's History in the Dashboard after the first run.
+7. The existing five-minute `monitor` function and Cron job do not need to be changed or redeployed for v6.1.
+
+### Carry-forward regression rules
+
+Future releases must preserve:
+1. The v5.5/v5.6 duplicate-snapshot migration compatibility guard.
+2. The monitor TypeScript numeric non-null/narrowing fixes.
+3. Current DefiLlama TVL uses `/tvl/{slug}` as a scalar number in both monitor and daily snapshot workers. Never substitute `/protocol/{slug}` for current TVL.

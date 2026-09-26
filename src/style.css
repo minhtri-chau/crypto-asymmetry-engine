@@ -47,3 +47,9 @@
 .changeMetrics small{font-size:10px;color:#62766d}
 @media(max-width:900px){.changeMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.changeRow{grid-template-columns:70px 1fr 14px;gap:10px}.changeMetrics{grid-template-columns:1fr}}
+
+/* v6.1 fixed-period snapshot controls */
+.periodTabs{display:flex;gap:5px;flex-shrink:0}
+.periodTabs button{padding:7px 10px;border:1px solid #28362f;background:#0b100e;color:#71867c;font:inherit;font-size:11px;cursor:pointer}
+.periodTabs button.active{color:#56f59c;border-color:#3a6e54;background:#0e1712}
+@media(max-width:650px){.whatChangedHead{flex-direction:column}.periodTabs{width:100%}.periodTabs button{flex:1}}
