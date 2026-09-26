@@ -477,3 +477,23 @@ v5.9 intentionally keeps notifications inside the web app. No email provider is 
 4. The existing five-minute Cron job does not need to be recreated.
 5. Optional: create a CoinGecko Demo key and store it only as the Edge Function secret `COINGECKO_DEMO_API_KEY`.
 6. Push the frontend files to GitHub `main`; Vercel will deploy the Active/Resolved Alerts UI.
+
+
+## v6.0 What Changed
+
+v6.0 turns saved snapshots into a comparison layer instead of a passive history list.
+
+- Dashboard `What changed?` ranks assets by the largest absolute percentage move among comparable snapshot metrics.
+- Asset detail pages show price, market cap, FDV, TVL, 30d fees, 30d revenue, circulating supply and FDV/TVL changes when the data exists.
+- A 3% display threshold separates material dashboard changes from small snapshot-to-snapshot noise. The raw metric changes remain visible on the asset page.
+- Comparisons use the previous saved snapshot when at least two snapshots exist; with one snapshot, that snapshot becomes the baseline.
+- Current live values are compared against the saved baseline, so a new snapshot is not required just to see movement.
+- This is descriptive monitoring, not an automatic buy/sell score.
+- No database migration or monitor redeployment is required for the What Changed frontend itself.
+
+### Carry-forward regression rules
+
+Future releases must preserve all three known fixes:
+1. Keep the v5.5/v5.6 duplicate-snapshot migration compatibility guard.
+2. Keep the monitor TypeScript numeric non-null/narrowing fixes.
+3. For current DefiLlama TVL in the monitor, use `/tvl/{slug}` and treat the response as a scalar number. Do not replace it with `/protocol/{slug}`, which returns historical TVL series data.
