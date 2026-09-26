@@ -422,3 +422,28 @@ Plain Vite development does not execute Vercel server functions.
 For full local behavior, use Vercel's local development workflow.
 
 Production deploys from the GitHub `main` branch through Vercel.
+
+## v5.8 background monitoring foundation
+
+v5.8 adds a server-side monitoring path so saved rules can be evaluated while the browser is closed.
+
+- `public.monitor_state` stores the current active/inactive state of each saved rule. It is server-worker-only.
+- `public.monitor_events` stores transitions into a triggered state. Authenticated users can read only their own events through RLS.
+- `supabase/functions/monitor/index.ts` fetches current CoinGecko market data and supported DefiLlama fundamentals, evaluates saved buy-price, take-profit, stop-loss, FDV/TVL and fee-deterioration rules, and creates an event only on a false -> true transition.
+- When a condition clears, the open event is resolved and the state resets. A later false -> true transition can create a new event.
+- The Alerts page now reads active `monitor_events` for the signed-in user.
+- `supabase/monitor-cron.sql` is a deployment template for a five-minute Supabase Cron heartbeat. Store the project URL and monitor secret in Vault. The same `MONITOR_CRON_SECRET` must be configured as an Edge Function secret.
+
+The worker does not place trades. It records reassessment events from rules the user already defined.
+
+### v5.8 deployment order
+
+1. Run the updated `supabase.sql` in the Supabase SQL Editor.
+2. Deploy the `monitor` Edge Function with JWT verification disabled as specified in `supabase/config.toml`.
+3. Generate a long random value and save it as the Edge Function secret `MONITOR_CRON_SECRET`.
+4. Store the project URL and the same monitor secret in Supabase Vault.
+5. Run `supabase/monitor-cron.sql` after replacing/setup of the Vault values.
+6. Inspect Cron job history and Edge Function logs after the first run.
+7. Sign in to the dashboard and use Alerts to view active reassessment events.
+
+Do not put `MONITOR_CRON_SECRET` or a Supabase secret/service-role key in any `VITE_*` variable or frontend file.
