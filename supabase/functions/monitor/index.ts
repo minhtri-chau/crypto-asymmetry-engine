@@ -28,11 +28,11 @@ Deno.serve(async(req)=>{
   let created=0,checked=0;
   for(const p of plans){const m=markets[ASSETS[p.symbol]],f=fund[p.symbol]||{};if(!m)continue;
     const rules:any[]=[];
-    if(n(p.buy_price)!=null)rules.push(["buy_price",m.current_price<=n(p.buy_price),m.current_price,n(p.buy_price),"Buy zone hit",`Price ${m.current_price} is at or below saved buy threshold ${p.buy_price}.`]);
-    if(n(p.take_profit)!=null)rules.push(["take_profit",m.current_price>=n(p.take_profit),m.current_price,n(p.take_profit),"Take-profit price hit",`Price ${m.current_price} is at or above saved take-profit threshold ${p.take_profit}.`]);
-    if(n(p.stop_loss)!=null)rules.push(["stop_loss",m.current_price<=n(p.stop_loss),m.current_price,n(p.stop_loss),"Stop-loss price hit",`Price ${m.current_price} is at or below saved stop-loss threshold ${p.stop_loss}.`]);
+    if(n(p.buy_price)!=null)rules.push(["buy_price",m.current_price<=n(p.buy_price)!,m.current_price,n(p.buy_price),"Buy zone hit",`Price ${m.current_price} is at or below saved buy threshold ${p.buy_price}.`]);
+    if(n(p.take_profit)!=null)rules.push(["take_profit",m.current_price>=n(p.take_profit)!,m.current_price,n(p.take_profit),"Take-profit price hit",`Price ${m.current_price} is at or above saved take-profit threshold ${p.take_profit}.`]);
+    if(n(p.stop_loss)!=null)rules.push(["stop_loss",m.current_price<=n(p.stop_loss)!,m.current_price,n(p.stop_loss),"Stop-loss price hit",`Price ${m.current_price} is at or below saved stop-loss threshold ${p.stop_loss}.`]);
     const fdvTvl=m.fully_diluted_valuation&&f.tvl?m.fully_diluted_valuation/f.tvl:null;
-    if(n(p.max_fdv_tvl)!=null&&fdvTvl!=null)rules.push(["fdv_tvl",fdvTvl<=n(p.max_fdv_tvl),fdvTvl,n(p.max_fdv_tvl),"FDV / TVL zone hit",`FDV / TVL ${fdvTvl.toFixed(2)} is at or below saved threshold ${p.max_fdv_tvl}.`]);
+    if(n(p.max_fdv_tvl)!=null&&fdvTvl!=null)rules.push(["fdv_tvl",fdvTvl<=n(p.max_fdv_tvl)!,fdvTvl,n(p.max_fdv_tvl),"FDV / TVL zone hit",`FDV / TVL ${fdvTvl.toFixed(2)} is at or below saved threshold ${p.max_fdv_tvl}.`]);
     const feeFloor=n(p.entry_fees_30d)!=null&&n(p.fee_drop)!=null?n(p.entry_fees_30d)!*(1-n(p.fee_drop)!/100):null;
     if(feeFloor!=null&&f.fees30d!=null)rules.push(["fee_drop",f.fees30d<=feeFloor,f.fees30d,feeFloor,"Fee deterioration rule hit",`30d fees ${f.fees30d} are at or below the saved thesis-break floor ${feeFloor.toFixed(2)}.`]);
     for(const [type,active,value,threshold,title,details] of rules){checked++;const k=`${p.user_id}:${p.symbol}:${type}`,prev=stateMap.get(k);if(active&&!prev?.is_active){const{error}=await db.from("monitor_events").insert({user_id:p.user_id,symbol:p.symbol,rule_type:type,title,details,observed_value:value,threshold});if(!error)created++}
