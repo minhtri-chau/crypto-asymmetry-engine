@@ -1,51 +1,14 @@
 const TRACKED=new Set(["AAVE","PENDLE","AERO","AKT","LINK","TAO","ONDO","TIA","SUI"]);
 const STABLE=new Set(["USDC","USDT","DAI","PYUSD","EURC","GUSD","USDS","USDG","USDP","TUSD","FDUSD"]);
 const EXCLUDE=new Set(["USD","EUR","GBP","CAD","AUD","USDT","USDC","DAI"]);
-const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-async function j(url){const r=await fetch(url,{headers:{accept:"application/json"}});if(!r.ok)throw new Error(`${r.status}`);return r.json()}
-function screenScore(x){
- const volRatio=x.market_cap>0?x.total_volume/x.market_cap:0;
- const liquidity=clamp(volRatio/0.12,0,1)*30;
- const r7=Number(x.price_change_percentage_7d_in_currency)||0,r30=Number(x.price_change_percentage_30d_in_currency)||0;
- // Reward constructive participation, but cap momentum so a vertical pump cannot dominate discovery.
- const momentum=clamp((r7+8)/28,0,1)*12+clamp((r30+15)/55,0,1)*13;
- const size=x.market_cap>0?clamp((Math.log10(x.market_cap)-7)/3,0,1)*15:0;
- const dilution=x.fully_diluted_valuation>0&&x.market_cap>0?x.fully_diluted_valuation/x.market_cap:null;
- const supply=dilution==null?5:dilution<=1.25?10:dilution<=1.75?7:dilution<=3?3:0;
- const notExtended=r7>45||r30>100?-12:r7>30||r30>70?-6:0;
- return Math.round(clamp(liquidity+momentum+size+supply+20+notExtended,0,100));
-}
-export default async function handler(req,res){
- try{
-  const [products,...pages]=await Promise.all([
-   j("https://api.exchange.coinbase.com/products"),
-   ...[1,2,3,4].map(page=>j(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}&sparkline=false&price_change_percentage=7d,30d`))
-  ]);
-  const cb=new Set((Array.isArray(products)?products:[])
-   .filter(p=>p&&p.status==="online"&&!p.trading_disabled&&["USD","USDC"].includes(p.quote_currency))
-   .map(p=>String(p.base_currency||"").toUpperCase()).filter(Boolean));
-  const best=new Map();
-  for(const x of pages.flat()){
-   const s=String(x.symbol||"").toUpperCase();
-   if(!cb.has(s)||TRACKED.has(s)||STABLE.has(s)||EXCLUDE.has(s)||!x.market_cap||!x.total_volume)continue;
-   const prev=best.get(s);if(!prev||x.market_cap>prev.market_cap)best.set(s,x);
-  }
-  const candidates=[...best.values()].map(x=>{
-   const score=screenScore(x),r7=x.price_change_percentage_7d_in_currency??null,r30=x.price_change_percentage_30d_in_currency??null;
-   const volRatio=x.market_cap>0?x.total_volume/x.market_cap:null;
-   const dilution=x.fully_diluted_valuation>0&&x.market_cap>0?x.fully_diluted_valuation/x.market_cap:null;
-   const reasons=[];
-   if(volRatio!=null&&volRatio>=.08)reasons.push("strong spot liquidity");
-   if(r7!=null&&r7>0)reasons.push("positive 7D momentum");
-   if(r30!=null&&r30>0)reasons.push("positive 30D momentum");
-   if(dilution!=null&&dilution<=1.5)reasons.push("limited FDV overhang");
-   if(r7!=null&&r7>30)reasons.push("price already extended");
-   return{symbol:String(x.symbol).toUpperCase(),id:x.id,name:x.name,price:x.current_price,marketCap:x.market_cap,fdv:x.fully_diluted_valuation,volume24h:x.total_volume,volumeToMarketCap:volRatio,return7d:r7,return30d:r30,dilution,discoveryScore:score,reasons};
-  }).filter(x=>x.marketCap>=25_000_000&&x.volume24h>=2_000_000)
-    .sort((a,b)=>b.discoveryScore-a.discoveryScore||b.volume24h-a.volume24h).slice(0,25);
-  res.setHeader("Cache-Control","s-maxage=900, stale-while-revalidate=1800");
-  res.status(200).json({candidates,universe:{coinbaseSpotSymbols:cb.size,screened:best.size,returned:candidates.length},
-   methodology:"Coinbase USD/USDC spot eligibility + CoinGecko market/liquidity/momentum/supply-overhang screen. Discovery Score is a triage score, not a buy ranking.",
-   at:new Date().toISOString()});
- }catch(e){res.status(502).json({error:"discovery feed unavailable"})}
-}
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),num=v=>v==null||v===""?null:Number(v);
+const cgHeaders=()=>{const h={accept:"application/json"},k=process.env.COINGECKO_DEMO_API_KEY;if(k)h["x-cg-demo-api-key"]=k;return h};
+async function j(url,headers={accept:"application/json"}){const r=await fetch(url,{headers});if(!r.ok)throw new Error(`${r.status}`);return r.json()}
+async function safe(url){try{return await j(url)}catch{return null}}
+function chart7dOver7d(s){const c=(s?.totalDataChart||[]).filter(p=>Array.isArray(p)&&p.length===2);if(c.length<14)return null;const sum=a=>a.reduce((t,p)=>t+(num(p[1])||0),0),last=sum(c.slice(-7)),prev=sum(c.slice(-14,-7));return prev>0?(last/prev-1)*100:null}
+function protocolMap(ps){const m=new Map();for(const p of ps||[]){const s=String(p?.symbol||"").toUpperCase();if(!s)continue;const r={slug:p.slug,tvl:num(p.tvl),change7d:num(p.change_7d)},c=m.get(s);if(!c||(r.tvl||0)>(c.tvl||0))m.set(s,r)}return m}
+async function addFundamentals(rows,ps){const m=protocolMap(ps),targets=rows.slice().sort((a,b)=>b.marketCap-a.marketCap).slice(0,30);await Promise.all(targets.map(async x=>{const p=m.get(x.symbol);if(!p)return;x.fundamentals={slug:p.slug,tvl:p.tvl,tvl7d:p.change7d,fees7d:null,fees30d:null,fees7dChange:null};if(p.slug){const f=await safe(`https://api.llama.fi/summary/fees/${p.slug}?dataType=dailyFees`);if(f){x.fundamentals.fees7d=num(f.total7d);x.fundamentals.fees30d=num(f.total30d);x.fundamentals.fees7dChange=num(f.change_7dover7d)??chart7dOver7d(f)}}}))}
+function extensionPenalty(r7,r30){const p7=r7>60?30:r7>40?23:r7>25?14:r7>15?5:0,p30=r30>150?40:r30>100?32:r30>70?24:r30>45?15:r30>30?8:0;return Math.max(p7,p30)}
+function rawScore(x){const vol=x.volumeToMarketCap||0,r7=x.return7d||0,r30=x.return30d||0,d=x.dilution;const liquidity=clamp(vol/.10,0,1)*18,size=x.marketCap>0?clamp((Math.log10(x.marketCap)-7.3)/2.7,0,1)*10:0,supply=d==null?3:d<=1.2?10:d<=1.5?8:d<=2?5:d<=3?2:0,confirmation=(r7>=-8&&r7<=15?8:r7>15&&r7<=25?5:r7<-8?2:0)+(r30>=-15&&r30<=30?7:r30>30&&r30<=45?3:r30<-15?1:0),f=x.fundamentals||{},hasFundamental=[f.tvl,f.fees7d,f.fees30d].some(v=>v!=null);let fundamental=0;if(hasFundamental){if(f.tvl7d!=null)fundamental+=f.tvl7d>15?10:f.tvl7d>5?8:f.tvl7d>0?5:f.tvl7d>-10?2:0;if(f.fees7dChange!=null)fundamental+=f.fees7dChange>30?12:f.fees7dChange>10?10:f.fees7dChange>0?6:f.fees7dChange>-15?2:0;if(f.fees30d!=null&&x.fdv>0){const y=f.fees30d*12/x.fdv;fundamental+=y>.15?8:y>.07?6:y>.03?4:y>.01?2:0}}const penalty=extensionPenalty(r7,r30);return{rawScore:liquidity+size+supply+confirmation+fundamental-penalty,extensionPenalty:penalty,hasFundamental}}
+function relativeScores(rows){const s=[...rows].sort((a,b)=>b.rawScore-a.rawScore||b.volume24h-a.volume24h),n=Math.max(1,s.length-1);s.forEach((x,i)=>{x.discoveryScore=Math.round(35+60*(1-i/n));x.rank=i+1});return s}
+export default async function handler(req,res){try{const products=await j("https://api.exchange.coinbase.com/products"),pages=[];for(const page of[1,2,3,4])pages.push(await j(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}&sparkline=false&price_change_percentage=7d,30d`,cgHeaders()));const cb=new Set((Array.isArray(products)?products:[]).filter(p=>p&&p.status==="online"&&!p.trading_disabled&&["USD","USDC"].includes(p.quote_currency)).map(p=>String(p.base_currency||"").toUpperCase()).filter(Boolean)),best=new Map();for(const x of pages.flat()){const s=String(x.symbol||"").toUpperCase();if(!cb.has(s)||TRACKED.has(s)||STABLE.has(s)||EXCLUDE.has(s)||!x.market_cap||!x.total_volume)continue;const prev=best.get(s);if(!prev||x.market_cap>prev.market_cap)best.set(s,x)}let rows=[...best.values()].map(x=>({symbol:String(x.symbol).toUpperCase(),id:x.id,name:x.name,price:x.current_price,marketCap:x.market_cap,fdv:x.fully_diluted_valuation,volume24h:x.total_volume,volumeToMarketCap:x.market_cap>0?x.total_volume/x.market_cap:null,return7d:x.price_change_percentage_7d_in_currency??null,return30d:x.price_change_percentage_30d_in_currency??null,dilution:x.fully_diluted_valuation>0&&x.market_cap>0?x.fully_diluted_valuation/x.market_cap:null,fundamentals:null})).filter(x=>x.marketCap>=25e6&&x.volume24h>=2e6);await addFundamentals(rows,await safe("https://api.llama.fi/protocols")||[]);rows.forEach(x=>Object.assign(x,rawScore(x)));const ranked=relativeScores(rows);ranked.forEach(x=>{const f=x.fundamentals||{},r=[];if(f.fees7dChange!=null&&f.fees7dChange>10)r.push(`fees +${Math.round(f.fees7dChange)}% vs prior 7D`);if(f.tvl7d!=null&&f.tvl7d>5)r.push(`TVL +${Math.round(f.tvl7d)}% 7D`);if(x.return30d!=null&&x.return30d<=30&&x.return30d>=-15)r.push("price not heavily repriced");if(x.volumeToMarketCap!=null&&x.volumeToMarketCap>=.06)r.push("liquid");if(x.dilution!=null&&x.dilution<=1.5)r.push("limited FDV overhang");if(x.extensionPenalty>=15)r.push("already repriced");if(!x.hasFundamental)r.push("fundamentals not matched");x.reasons=r.slice(0,4)});const candidates=ranked.slice(0,25).map(({rawScore,...x})=>x);res.setHeader("Cache-Control","s-maxage=900, stale-while-revalidate=1800");res.status(200).json({candidates,universe:{coinbaseSpotSymbols:cb.size,screened:best.size,eligible:rows.length,returned:candidates.length},methodology:"Relative early-asymmetry triage across eligible Coinbase spot assets. Large recent gains are penalized; matched DefiLlama TVL/fee improvement adds evidence. Discovery Score is relative research priority, not a buy score.",coinGeckoDemoKey:!!process.env.COINGECKO_DEMO_API_KEY,at:new Date().toISOString()})}catch(e){res.status(502).json({error:"discovery feed unavailable"})}}

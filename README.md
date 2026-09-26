@@ -614,3 +614,7 @@ v7 separates the permanent research/portfolio layer from a changing discovery un
 ### v7 deployment
 
 Push the frontend and `api/discovery.js` to GitHub `main`; Vercel deploys them together. No Supabase SQL migration, Edge Function redeploy, Cron change, secret change, or dependency change is required.
+
+
+## v7.1
+Discovery now uses relative ranking, much stronger recent-gain penalties, best-effort DefiLlama TVL/fee evidence, sequential CoinGecko requests, and server-only CoinGecko Demo-key support. It remains research triage, not a buy score.
