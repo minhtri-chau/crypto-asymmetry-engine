@@ -23,11 +23,11 @@ function state(s:any,owned:boolean,prev:any){
  if(sustainedDeterioration)return{status:owned?"reduce_exit_review":"archive_candidate",reason:owned?"Concrete, well-covered deterioration persisted versus the prior evaluation; review the thesis and predefined exit rules.":"Concrete, well-covered deterioration persisted versus the prior evaluation; consider retiring this research candidate."};
  if(s.penalty>=24)return{status:"reassess",reason:"Price appears substantially repriced; reassess valuation versus fundamentals."};
  if(fundamentalDrop)return{status:"reassess",reason:"Observed fundamentals deteriorated materially; review whether the thesis is weakening."};
- if(s.evidence>=65&&s.coverage>=75)return{status:"strengthening",reason:"Broad evidence is comparatively strong with good coverage; deepen entry research."};
+ if(s.evidence>=65&&s.coverage>=75)return{status:"strengthening",reason:"Current Setup Evidence is comparatively strong with at least 75% Data Coverage; deepen entry research while keeping the longer-lived thesis separate."};
  if(delta!=null&&delta<=-12)return{status:"reassess",reason:`Evidence fell ${Math.abs(Math.round(delta))} points since the prior evaluation; review what changed.`};
  if(delta!=null&&delta>=10&&s.coverage>=75)return{status:"strengthening",reason:`Evidence improved ${Math.round(delta)} points with sufficient coverage.`};
- if(s.coverage<75)return{status:"research_needed",reason:"Evidence coverage is incomplete. Missing evidence is uncertainty, not negative evidence; continue researching."};
- return{status:"monitor",reason:"No hard thesis deterioration signal; continue monitoring."}
+ if(s.coverage<75)return{status:"research_needed",reason:"Setup Data Coverage is below 75%. Missing evidence is uncertainty, not negative evidence; continue researching."};
+ return{status:"monitor",reason:"No hard current-setup deterioration signal; continue monitoring the setup and thesis separately."}
 }
 Deno.serve(async req=>{
  if(req.method!=="POST")return new Response("Method not allowed",{status:405});

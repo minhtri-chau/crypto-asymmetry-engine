@@ -209,3 +209,28 @@ alter table public.research_assets add column if not exists research_origin text
 
 -- v8.5 unified plans (additive, safe to re-run)
 alter table public.plans add column if not exists coingecko_id text;
+
+
+-- v8.6 scoring semantics (additive, safe to re-run)
+alter table public.research_assets
+  add column if not exists thesis_strength numeric
+  check (thesis_strength is null or (thesis_strength >= 0 and thesis_strength <= 100));
+
+-- Preserve the original curated Research Snapshot as the starting longer-lived
+-- Thesis Strength. Do not overwrite any score the user has already changed.
+update public.research_assets
+set thesis_strength = case symbol
+  when 'AAVE' then 80
+  when 'PENDLE' then 78
+  when 'AERO' then 73
+  when 'AKT' then 73
+  when 'LINK' then 72
+  when 'TAO' then 67
+  when 'ONDO' then 62
+  when 'TIA' then 58
+  when 'SUI' then 58
+  else thesis_strength
+end
+where research_origin = 'curated'
+  and thesis_strength is null
+  and symbol in ('AAVE','PENDLE','AERO','AKT','LINK','TAO','ONDO','TIA','SUI');

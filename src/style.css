@@ -89,3 +89,6 @@
 
 /* v8.5 */
 .ownershipNote{border-color:#28543c}.ownershipNote p{max-width:760px}
+
+/* v8.6 scoring semantics */
+.scoreStack{flex-wrap:wrap}.thesisStrengthInput input{max-width:140px;margin-top:8px}.thesisStrengthInput small{display:block;margin-top:7px;max-width:680px}.priorityCard .evidenceLine+.evidenceLine{margin-top:8px}

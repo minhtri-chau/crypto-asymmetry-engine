@@ -709,3 +709,18 @@ Single lifecycle:
 
 ## v8.5 unified plans + owned priority
 Buy & Sell Plan now lives on every unified Research detail page. Plans persist CoinGecko identity so the five-minute monitor can evaluate price rules for dynamically researched assets. Owned assets are pinned to Highest-priority Research until ownership is unchecked/sold; deterioration remains visible and can still trigger reassessment. Portfolio now includes owned assets across the unified research universe.
+
+
+## v8.6 thesis vs setup semantics
+
+v8.6 stops using one quantitative number as a proxy for the whole research thesis.
+
+- `Thesis Strength` is a separate 0–100 longer-lived research judgment covering the quality of the investment thesis. It is editable on the unified Research detail page.
+- The original nine keep their previous curated Research Snapshot as the initial Thesis Strength baseline (AAVE 80, PENDLE 78, AERO 73, AKT 73, LINK 72, TAO 67, ONDO 62, TIA 58, SUI 58). This preserves the meaning of the earlier research work instead of pretending the new Setup score replaced it.
+- Newly promoted assets start with Thesis Strength unscored. Missing thesis research is shown as missing, not as zero.
+- `Setup Evidence` remains the automated quantitative current-condition score from the daily evaluator. It measures liquidity, size, supply/dilution, price confirmation/extension and available fundamental momentum.
+- `Data Coverage` describes completeness of Setup Evidence only.
+- Highest-priority Research now requires, for unowned Active Research assets: Setup Evidence >=55, Data Coverage >=75%, evaluator state not `research_needed`/reassessment, and Thesis Strength >=60.
+- This removes the old 63% contradiction: the shelf and daily evaluator now use the same 75% Data Coverage gate.
+- Research Priority combines Thesis Strength, Setup Evidence, Data Coverage and recent Setup change only for routing attention. It is not an Entry Score or trade recommendation.
+- Owned assets remain pinned regardless of these gates until marked sold, while deterioration warnings remain visible.
