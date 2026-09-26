@@ -447,3 +447,11 @@ The worker does not place trades. It records reassessment events from rules the 
 7. Sign in to the dashboard and use Alerts to view active reassessment events.
 
 Do not put `MONITOR_CRON_SECRET` or a Supabase secret/service-role key in any `VITE_*` variable or frontend file.
+
+
+## v5.8.1 authentication hotfix
+
+- Validates and trims the email before password sign-in/sign-up.
+- Prevents auth actions until an email and a password of at least 6 characters are present.
+- Makes account creation explicitly prevent the form submit path before calling Supabase Auth.
+- Preserves the v5.5 duplicate-migration compatibility guard and all v5.8 monitor code.
