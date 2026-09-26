@@ -598,3 +598,19 @@ v6.3 tightens the Decision Radar before adding more breadth.
 - Restores aligned 7D FDV/TVL change in Decision Radar using `(1 + 7D price)/(1 + 7D TVL) - 1`.
 - Applies that valuation signal only to AAVE, PENDLE, AERO, LINK, ONDO and SUI. TAO/TIA remain excluded because their chain-TVL semantics are not suitable for this valuation ratio.
 - No SQL or Cron changes.
+
+
+## v7 Dynamic Discovery
+
+v7 separates the permanent research/portfolio layer from a changing discovery universe.
+
+- `/api/discovery` starts from currently online Coinbase USD/USDC spot markets, then matches those symbols to CoinGecko market data.
+- Stablecoins, fiat quote assets, the existing nine research assets, very small markets (<$25M market cap), and very thin markets (<$2M 24h volume) are excluded from the candidate screen.
+- Discovery Score is a transparent triage heuristic using liquidity, market size, 7D/30D momentum, supply overhang, and an extension penalty. It is **not** an Entry Score and is not a buy recommendation.
+- Scanner now shows `Dynamic discovery` above the persistent `Deep research & watchlist`.
+- The current nine assets remain tracked for history, plans, ownership, monitoring and deeper fundamentals. Discovery candidates do not silently become researched assets.
+- Promotion into the research list remains evidence-gated. A later release can persist candidate lifecycle states and add automatic fundamental adapters where reliable.
+
+### v7 deployment
+
+Push the frontend and `api/discovery.js` to GitHub `main`; Vercel deploys them together. No Supabase SQL migration, Edge Function redeploy, Cron change, secret change, or dependency change is required.
