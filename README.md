@@ -659,3 +659,15 @@ The original nine curated research assets remain intact in v8. Dynamic research 
 
 ## v8.1
 Active Research and Watchlist assets now appear on Dashboard. Promotion no longer attempts a client write to the server-owned evaluation ledger. Missing returns remain null for honest Coverage. Low coverage becomes `research_needed`; archive/reduce-exit requires concrete, well-covered deterioration plus a material decline. The 30-second research-monitor Cron timeout is preserved.
+
+
+## v8.2 unified research experience
+
+v8.2 begins removing the split between the original curated nine and promoted Discovery assets.
+
+- Promoted Active Research and Watchlist assets are clickable from Dashboard and Research.
+- Dynamic assets now have a research detail page with live market data, Setup Evidence, Data Coverage, evaluation history, price/fundamental changes, dilution, ownership/P&L, and evidence-gate context.
+- Dynamic thesis and thesis-break fields can now be edited directly on the detail page and persist in `research_assets`.
+- User-facing `Live Evidence` wording is renamed `Setup Evidence`; `Coverage` is labeled `Data Coverage` so score strength is not confused with evidence completeness.
+- The research evaluator now persists market cap, FDV, volume, TVL and 30d fees for richer historical detail going forward.
+- Missing catalysts, value capture, exact unlock timing and qualitative risks remain explicit research gaps rather than fabricated data.

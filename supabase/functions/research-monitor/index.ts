@@ -40,9 +40,9 @@ Deno.serve(async req=>{
  const mm=new Map(market.map((x:any)=>[x.id,x])),protocols=await fj("https://api.llama.fi/protocols")||[],pm=protocolMap(protocols);let evaluated=0;
  for(const a of assets){
   const m=mm.get(a.coingecko_id);if(!m)continue;const p=pm.x(a.coingecko_id,a.symbol);let f:any=null;
-  if(p){const fees=await fj(`https://api.llama.fi/summary/fees/${p.slug}?dataType=dailyFees`);f={tvl7d:p.tvl7d,fees30d:num(fees?.total30d),fees7dChange:num(fees?.change_7dover7d)??chart7(fees)}}
+  if(p){const fees=await fj(`https://api.llama.fi/summary/fees/${p.slug}?dataType=dailyFees`);f={tvl:p.tvl,tvl7d:p.tvl7d,fees30d:num(fees?.total30d),fees7dChange:num(fees?.change_7dover7d)??chart7(fees)}}
   const s=score(m,f),{data:prior}=await db.from("research_evaluations").select("evidence_score,evidence_coverage,status").eq("research_asset_id",a.id).order("evaluated_at",{ascending:false}).limit(1).maybeSingle(),st=state(s,!!a.is_owned,prior);
-  const{error:ie}=await db.from("research_evaluations").insert({user_id:a.user_id,research_asset_id:a.id,evidence_score:s.evidence,evidence_coverage:s.coverage,price:m.current_price,return_7d:s.r7,return_30d:s.r30,fees_7d_change:f?.fees7dChange??null,tvl_7d_change:f?.tvl7d??null,dilution:s.d,status:st.status,reason:st.reason});if(!ie)evaluated++;
+  const{error:ie}=await db.from("research_evaluations").insert({user_id:a.user_id,research_asset_id:a.id,evidence_score:s.evidence,evidence_coverage:s.coverage,price:m.current_price,market_cap:m.market_cap??null,fdv:m.fully_diluted_valuation??null,volume_24h:m.total_volume??null,tvl:f?.tvl??null,fees_30d:f?.fees30d??null,return_7d:s.r7,return_30d:s.r30,fees_7d_change:f?.fees7dChange??null,tvl_7d_change:f?.tvl7d??null,dilution:s.d,status:st.status,reason:st.reason});if(!ie)evaluated++;
  }
  return Response.json({ok:true,evaluated,coinGeckoDemoKey:!!cg,at:new Date().toISOString()})
 });

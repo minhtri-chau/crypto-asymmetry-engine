@@ -185,3 +185,11 @@ revoke all on public.research_assets from anon;
 revoke all on public.research_evaluations from anon;
 grant select,insert,update,delete on public.research_assets to authenticated;
 grant select on public.research_evaluations to authenticated;
+
+
+-- v8.2 dynamic research detail metrics (additive, safe to re-run)
+alter table public.research_evaluations add column if not exists market_cap numeric;
+alter table public.research_evaluations add column if not exists fdv numeric;
+alter table public.research_evaluations add column if not exists volume_24h numeric;
+alter table public.research_evaluations add column if not exists tvl numeric;
+alter table public.research_evaluations add column if not exists fees_30d numeric;

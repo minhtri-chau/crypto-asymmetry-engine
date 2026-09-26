@@ -77,3 +77,6 @@
 
 /* v8.1 hardening + dynamic research on Dashboard */
 .dynamicDashboard{margin-bottom:18px}.dynamicDashRow{width:100%;display:grid;grid-template-columns:1fr 1.5fr 1fr 18px;gap:14px;align-items:center;text-align:left;background:transparent;border:0;border-top:1px solid #1d2824;padding:13px 0;color:inherit;cursor:pointer}.dynamicDashRow:hover{background:#0c100f}.dynamicDashRow>span{display:flex;flex-direction:column;gap:3px}.dynamicDashRow small{color:#6f8379;font-size:9px}.researchStatus.research_needed{color:#e5c77e}@media(max-width:650px){.dynamicDashRow{grid-template-columns:1fr 1fr 14px}.dynamicDashRow>span:nth-child(3){grid-column:1/-1}}
+
+/* v8.2 unified dynamic research detail */
+.researchTextLabel{display:block;font:9px DM Mono;color:#748079;margin:12px 0}.researchTextLabel textarea{display:block;width:100%;min-height:86px;margin-top:6px;background:#090c0a;border:1px solid #29322d;color:#eef3ef;padding:10px;resize:vertical}.researchHistoryRow{display:grid;grid-template-columns:90px 70px 1fr;gap:10px;align-items:center;border-top:1px solid #1d2824;padding:10px 0}.researchHistoryRow span,.researchHistoryRow small{color:#6f8379;font-size:9px}.researchHistoryRow b{font:10px DM Mono;color:#8af0af}.dynamicDashRow{cursor:pointer}@media(max-width:600px){.researchHistoryRow{grid-template-columns:75px 60px 1fr}.scoreStack{width:100%}}
