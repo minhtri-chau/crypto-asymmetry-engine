@@ -200,3 +200,8 @@ alter table public.research_assets add column if not exists catalysts text;
 alter table public.research_assets add column if not exists value_capture text;
 alter table public.research_assets add column if not exists unlock_notes text;
 alter table public.research_assets add column if not exists risk_notes text;
+
+
+-- v8.4 unified asset pipeline (additive, safe to re-run)
+alter table public.research_assets add column if not exists research_origin text not null default 'discovery'
+  check (research_origin in ('curated','discovery','manual'));

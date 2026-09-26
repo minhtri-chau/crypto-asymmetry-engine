@@ -687,3 +687,21 @@ v8.3 makes the Dashboard's Highest-priority research shelf dynamic instead of ha
 - Dynamic detail pages now include editable catalysts, token value capture, unlock/dilution notes, and qualitative risks. Missing research dimensions remain explicitly missing.
 
 Dynamic Priority is a research-routing score, not an Entry Score or a trade recommendation. It changes what deserves attention, not what the user must buy or sell.
+
+
+## v8.4 unified asset pipeline
+
+v8.4 removes the conceptual split between the original nine curated assets and dynamically promoted Discovery assets.
+
+Single lifecycle:
+
+`Coinbase Universe -> Scanner -> Active Research -> Watchlist -> Archived`
+
+- Scanner no longer excludes AAVE, PENDLE, AERO, AKT, LINK, TAO, ONDO, TIA or SUI.
+- Scanner returns the full eligible ranked Coinbase universe instead of only the top 25, so tracked assets can still show their current market rank when they qualify for the liquidity/market-cap screen.
+- The old Scanner-only `Deep research & watchlist` table is removed. Research is now the single home for followed assets.
+- On first v8.4 sign-in, the original nine are idempotently seeded into `research_assets`. Their existing thesis/catalyst context is carried over. Existing dynamic assets are preserved.
+- Scanner shows each asset's lifecycle state: Active Research, Watchlist, Archived, or Untracked.
+- Clicking a tracked Scanner asset opens its unified research detail.
+- Highest-priority Research continues to draw only from Active Research and can dynamically promote or drop assets based on evidence. Curated origin does not confer permanent priority.
+- Falling in Scanner rank does not automatically archive an asset. Scanner rank is relative triage; lifecycle changes remain user decisions informed by the evaluator.

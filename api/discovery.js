@@ -1,4 +1,3 @@
-const TRACKED=new Set(["AAVE","PENDLE","AERO","AKT","LINK","TAO","ONDO","TIA","SUI"]);
 const STABLE=new Set(["USDC","USDT","DAI","PYUSD","EURC","GUSD","USDS","USDG","USDP","TUSD","FDUSD","USD1","RLUSD","USDE","FRAX","LUSD","GHO","CRVUSD"]);
 const pegged=x=>x.current_price>0.97&&x.current_price<1.03&&Math.abs(x.price_change_percentage_7d_in_currency??0)<1&&Math.abs(x.price_change_percentage_30d_in_currency??0)<1.5;
 const EXCLUDE=new Set(["USD","EUR","GBP","CAD","AUD","USDT","USDC","DAI"]);
@@ -40,13 +39,13 @@ export default async function handler(req,res){try{
  const products=await j("https://api.exchange.coinbase.com/products"),pages=[];
  for(const page of[1,2,3,4])pages.push(await j(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}&sparkline=false&price_change_percentage=7d,30d`,cgHeaders()));
  const cb=new Set((Array.isArray(products)?products:[]).filter(p=>p&&p.status==="online"&&!p.trading_disabled&&["USD","USDC"].includes(p.quote_currency)).map(p=>String(p.base_currency||"").toUpperCase()).filter(Boolean)),best=new Map();
- for(const x of pages.flat()){const s=String(x.symbol||"").toUpperCase();if(!cb.has(s)||TRACKED.has(s)||STABLE.has(s)||EXCLUDE.has(s)||pegged(x)||!x.market_cap||!x.total_volume)continue;const prev=best.get(s);if(!prev||x.market_cap>prev.market_cap)best.set(s,x)}
+ for(const x of pages.flat()){const s=String(x.symbol||"").toUpperCase();if(!cb.has(s)||STABLE.has(s)||EXCLUDE.has(s)||pegged(x)||!x.market_cap||!x.total_volume)continue;const prev=best.get(s);if(!prev||x.market_cap>prev.market_cap)best.set(s,x)}
  let rows=[...best.values()].map(x=>({symbol:String(x.symbol).toUpperCase(),id:x.id,name:x.name,price:x.current_price,marketCap:x.market_cap,fdv:x.fully_diluted_valuation,volume24h:x.total_volume,volumeToMarketCap:x.market_cap>0?x.total_volume/x.market_cap:null,return7d:x.price_change_percentage_7d_in_currency??null,return30d:x.price_change_percentage_30d_in_currency??null,dilution:x.fully_diluted_valuation>0&&x.market_cap>0?x.fully_diluted_valuation/x.market_cap:null,fundamentals:null})).filter(x=>x.marketCap>=25e6&&x.volume24h>=2e6);
  await addFundamentals(rows,await safe("https://api.llama.fi/protocols")||[]);
  rows.forEach(x=>Object.assign(x,scoreParts(x)));
  const ranked=rankCandidates(rows);
  ranked.forEach(x=>{const f=x.fundamentals||{},r=[];if(f.fees7dChange!=null&&f.fees7dChange>10)r.push(`fees +${Math.round(f.fees7dChange)}% vs prior 7D`);if(f.tvl7d!=null&&f.tvl7d>5)r.push(`TVL +${Math.round(f.tvl7d)}% 7D`);if(x.return30d!=null&&x.return30d<=30&&x.return30d>=-15)r.push("price not heavily repriced");if(x.volumeToMarketCap!=null&&x.volumeToMarketCap>=.06)r.push("liquid");if(x.dilution!=null&&x.dilution<=1.5)r.push("limited FDV overhang");if(x.extensionPenalty>=15)r.push("already repriced");if(!x.hasFundamental)r.push("fundamentals not matched");x.reasons=r.slice(0,4)});
- const candidates=ranked.slice(0,25);
+ const candidates=ranked;
  res.setHeader("Cache-Control","s-maxage=900, stale-while-revalidate=1800");
  res.status(200).json({candidates,universe:{coinbaseSpotSymbols:cb.size,screened:best.size,eligible:rows.length,returned:candidates.length},
   methodology:"Research Priority is relative rank within today's eligible Coinbase universe. Asymmetry Evidence is an absolute 0-100 evidence score and is not guaranteed to be high. Large recent gains are penalized; identity-safe DefiLlama TVL/fee evidence adds points where available. Missing fundamentals reduce evidence coverage rather than being treated as zero.",

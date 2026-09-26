@@ -83,3 +83,6 @@
 
 /* v8.3 dynamic highest-priority research */
 .snapshotTop{display:flex;justify-content:flex-end;margin:24px 0 -20px}.priorityCards{grid-template-columns:repeat(5,1fr)}.priorityCard{min-height:270px}.priorityWhy{display:block;color:#6f8379;font-size:9px;line-height:1.5;margin-top:9px}.priorityEmpty{margin-bottom:18px}.promotionReview{margin:14px 0 20px}.promotionReviewRow{width:100%;display:grid;grid-template-columns:.8fr 2fr .7fr 14px;gap:14px;align-items:center;text-align:left;background:transparent;border:0;border-top:1px solid #1d2824;padding:12px 0;color:inherit;cursor:pointer}.promotionReviewRow>span{display:flex;flex-direction:column;gap:3px}.promotionReviewRow small{color:#6f8379;font-size:9px}@media(max-width:1100px){.priorityCards{grid-template-columns:repeat(3,1fr)}}@media(max-width:700px){.priorityCards{grid-template-columns:1fr}.promotionReviewRow{grid-template-columns:.7fr 1.8fr 14px}.promotionReviewRow>span:nth-child(3){display:none}.snapshotTop{margin-bottom:0}}
+
+/* v8.4 unified asset pipeline */
+.scannerHero{margin-bottom:24px}.lifecycleBtn{background:transparent;border:0;cursor:pointer;padding:0;text-align:left}.discoveryTable{overflow-x:auto}.discoveryRow{min-width:1180px}
