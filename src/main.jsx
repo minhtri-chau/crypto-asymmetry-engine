@@ -72,7 +72,8 @@ function planState(plan,m,f){
  if(plan.stopLoss&&price!=null&&price<=+plan.stopLoss)hits.push(["risk","Stop-loss price hit"]);
  if(plan.maxFdvTvl&&m?.fully_diluted_valuation&&f?.tvl&&m.fully_diluted_valuation/f.tvl<=+plan.maxFdvTvl)hits.push(["buy","FDV / TVL zone hit"]);
  if(plan.feeDrop&&plan.entryFees30d&&f?.fees30d!=null&&f.fees30d<=plan.entryFees30d*(1-(+plan.feeDrop/100)))hits.push(["risk",`Fees down ${plan.feeDrop}% from plan baseline`]);
- const priority={risk:0,profit:1,buy:2};\n return hits.sort((a,b)=>priority[a[0]]-priority[b[0]]);
+ const priority={risk:0,profit:1,buy:2};
+ return hits.sort((a,b)=>priority[a[0]]-priority[b[0]]);
 }
 
 const meta={strengthening:["Setup strengthening",ArrowUpRight],watch:["Watch / validate",Eye],research:["Research only",FlaskConical],wait:["Wait / reassess",Clock3]},money=n=>n==null?"—":n>=1e9?"$"+(n/1e9).toFixed(2)+"B":n>=1e6?"$"+(n/1e6).toFixed(1)+"M":n>=1e3?"$"+(n/1e3).toFixed(1)+"K":"$"+Number(n).toLocaleString(undefined,{maximumFractionDigits:n<1?4:2}),pct=n=>n==null?"—":`${n>=0?"+":""}${n.toFixed(2)}%`;
