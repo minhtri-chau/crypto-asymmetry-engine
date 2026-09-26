@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.117.1";
+import { fundamentals, PROTOCOLS, CHAINS } from "../_shared/fundamentals.ts";
 
 const ASSETS: Record<string,string> = {AAVE:"aave",PENDLE:"pendle",AERO:"aerodrome-finance",AKT:"akash-network",LINK:"chainlink",TAO:"bittensor",ONDO:"ondo-finance",TIA:"celestia",SUI:"sui"};
-const LLAMA: Record<string,string> = {AAVE:"aave",PENDLE:"pendle",AERO:"aerodrome",ONDO:"ondo-finance"};
 const n=(v:unknown)=>v===null||v===undefined||v===""?null:Number(v);
 const keyOf=(u:string,s:string,t:string)=>`${u}:${s}:${t}`;
 function secretKey(){const legacy=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");if(legacy)return legacy;try{return JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")||"{}").default||null}catch{return null}}
@@ -10,8 +10,10 @@ function configuredRules(p:any){
   if(n(p.buy_price)!=null)out.push("buy_price");
   if(n(p.take_profit)!=null)out.push("take_profit");
   if(n(p.stop_loss)!=null)out.push("stop_loss");
-  if(n(p.max_fdv_tvl)!=null)out.push("fdv_tvl");
-  if(n(p.entry_fees_30d)!=null&&n(p.fee_drop)!=null)out.push("fee_drop");
+  const canTvl=!!PROTOCOLS[p.symbol]||!!CHAINS[p.symbol]?.tvlRule;
+  const canFees=!!PROTOCOLS[p.symbol]||!!CHAINS[p.symbol]?.fees;
+  if(n(p.max_fdv_tvl)!=null&&canTvl)out.push("fdv_tvl");
+  if(n(p.entry_fees_30d)!=null&&n(p.fee_drop)!=null&&canFees)out.push("fee_drop");
   return out;
 }
 async function resolveOpen(db:any,userId:string,symbol:string,type:string,at:string){
@@ -54,19 +56,15 @@ Deno.serve(async(req)=>{
   if(!mr.ok)return Response.json({error:`CoinGecko ${mr.status}`},{status:502});
   const markets=Object.fromEntries((await mr.json()).map((x:any)=>[x.id,x]));
 
-  // Fetch DefiLlama only for symbols whose saved rules actually need TVL or fees.
-  const needsFund=[...new Set(allPlans.filter((p:any)=>LLAMA[p.symbol]&&(n(p.max_fdv_tvl)!=null||(n(p.entry_fees_30d)!=null&&n(p.fee_drop)!=null))).map((p:any)=>p.symbol))];
-  const fund:Record<string,any>={};
-  await Promise.all(needsFund.map(async s=>{
-    const slug=LLAMA[s];
-    const needTvl=allPlans.some((p:any)=>p.symbol===s&&n(p.max_fdv_tvl)!=null);
-    const needFees=allPlans.some((p:any)=>p.symbol===s&&n(p.entry_fees_30d)!=null&&n(p.fee_drop)!=null);
-    const [protocol,fees]=await Promise.all([
-      needTvl?fetch(`https://api.llama.fi/tvl/${slug}`).then(r=>r.ok?r.json():null).catch(()=>null):Promise.resolve(null),
-      needFees?fetch(`https://api.llama.fi/summary/fees/${slug}?dataType=dailyFees`).then(r=>r.ok?r.json():null).catch(()=>null):Promise.resolve(null)
-    ]);
-    fund[s]={tvl:typeof protocol==="number"?protocol:null,fees30d:fees?.total30d??null};
-  }));
+  // Use the same metric definitions as the daily snapshot worker.
+  // LINK receives protocol TVL/fees. SUI receives chain TVL/fees.
+  // TIA and TAO receive fee monitoring only: their chain TVL is not treated as a reliable FDV/TVL denominator.
+  const needsFund=[...new Set(allPlans.filter((p:any)=>{
+    const canTvl=!!PROTOCOLS[p.symbol]||!!CHAINS[p.symbol]?.tvlRule;
+    const canFees=!!PROTOCOLS[p.symbol]||!!CHAINS[p.symbol]?.fees;
+    return (canTvl&&n(p.max_fdv_tvl)!=null)||(canFees&&n(p.entry_fees_30d)!=null&&n(p.fee_drop)!=null);
+  }).map((p:any)=>p.symbol))];
+  const fund=await fundamentals(needsFund);
 
   const stateMap=new Map(allStates.filter((x:any)=>validKeys.has(keyOf(x.user_id,x.symbol,x.rule_type))).map((x:any)=>[keyOf(x.user_id,x.symbol,x.rule_type),x]));
   let created=0,checked=0,thresholdResets=0;
@@ -77,7 +75,7 @@ Deno.serve(async(req)=>{
     if(n(p.buy_price)!=null)rules.push(["buy_price",m.current_price<=n(p.buy_price)!,m.current_price,n(p.buy_price),"Buy zone hit",`Price ${m.current_price} is at or below saved buy threshold ${p.buy_price}.`]);
     if(n(p.take_profit)!=null)rules.push(["take_profit",m.current_price>=n(p.take_profit)!,m.current_price,n(p.take_profit),"Take-profit price hit",`Price ${m.current_price} is at or above saved take-profit threshold ${p.take_profit}.`]);
     if(n(p.stop_loss)!=null)rules.push(["stop_loss",m.current_price<=n(p.stop_loss)!,m.current_price,n(p.stop_loss),"Stop-loss price hit",`Price ${m.current_price} is at or below saved stop-loss threshold ${p.stop_loss}.`]);
-    const fdvTvl=m.fully_diluted_valuation&&f.tvl?m.fully_diluted_valuation/f.tvl:null;
+    const fdvTvl=f.tvlRule&&m.fully_diluted_valuation&&f.tvl?m.fully_diluted_valuation/f.tvl:null;
     if(n(p.max_fdv_tvl)!=null&&fdvTvl!=null)rules.push(["fdv_tvl",fdvTvl<=n(p.max_fdv_tvl)!,fdvTvl,n(p.max_fdv_tvl),"FDV / TVL zone hit",`FDV / TVL ${fdvTvl.toFixed(2)} is at or below saved threshold ${p.max_fdv_tvl}.`]);
     const feeFloor=n(p.entry_fees_30d)!=null&&n(p.fee_drop)!=null?n(p.entry_fees_30d)!*(1-n(p.fee_drop)!/100):null;
     if(feeFloor!=null&&f.fees30d!=null)rules.push(["fee_drop",f.fees30d<=feeFloor,f.fees30d,feeFloor,"Fee deterioration rule hit",`30d fees ${f.fees30d} are at or below the saved thesis-break floor ${feeFloor.toFixed(2)}.`]);

@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.117.1";
+import { fundamentals } from "../_shared/fundamentals.ts";
 
 const ASSETS:Record<string,string>={AAVE:"aave",PENDLE:"pendle",AERO:"aerodrome-finance",AKT:"akash-network",LINK:"chainlink",TAO:"bittensor",ONDO:"ondo-finance",TIA:"celestia",SUI:"sui"};
-const LLAMA:Record<string,string>={AAVE:"aave",PENDLE:"pendle",AERO:"aerodrome",ONDO:"ondo-finance"};
 function secretKey(){const legacy=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");if(legacy)return legacy;try{return JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")||"{}").default||null}catch{return null}}
 
 Deno.serve(async(req)=>{
@@ -17,15 +17,7 @@ Deno.serve(async(req)=>{
  const mr=await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&sparkline=false`,{headers:cgHeaders});
  if(!mr.ok)return Response.json({error:`CoinGecko ${mr.status}`},{status:502});
  const markets=Object.fromEntries((await mr.json()).map((x:any)=>[x.id,x]));
- const fund:Record<string,any>={};
- await Promise.all(Object.entries(LLAMA).map(async([sym,slug])=>{
-   const[tvl,fees,rev]=await Promise.all([
-    fetch(`https://api.llama.fi/tvl/${slug}`).then(r=>r.ok?r.json():null).catch(()=>null),
-    fetch(`https://api.llama.fi/summary/fees/${slug}?dataType=dailyFees`).then(r=>r.ok?r.json():null).catch(()=>null),
-    fetch(`https://api.llama.fi/summary/fees/${slug}?dataType=dailyRevenue`).then(r=>r.ok?r.json():null).catch(()=>null)
-   ]);
-   fund[sym]={tvl:typeof tvl==="number"?tvl:null,fees30d:fees?.total30d??null,fees7d:fees?.total7d??null,revenue30d:rev?.total30d??null,revenue7d:rev?.total7d??null};
- }));
+ const fund=await fundamentals(Object.keys(ASSETS));
  // auth.users is not exposed through the Data API; list accounts with the Admin API instead.
  const users:{id:string}[]=[];
  for(let page=1;;page++){

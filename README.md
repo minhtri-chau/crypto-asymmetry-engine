@@ -579,3 +579,15 @@ v6.3 tightens the Decision Radar before adding more breadth.
 - Uses DefiLlama's source-native `change_7dover7d` where available, so fee/revenue momentum can be evaluated immediately instead of waiting seven days for local snapshots.
 - Snapshot history remains the fallback and is still useful for price, valuation and independent auditability.
 - No database migration, Supabase Edge Function change or Cron change is required for v6.5.
+
+
+## v6.6 data-consistency release
+
+- Preserves the v6.5 production fixes: 7D fee/revenue change is calculated from daily history, and parent-protocol TVL uses `/tvl/{slug}` plus child/version changes.
+- Adds CoinGecko 7D price return to `/api/trends`; Decision Radar uses that 7D price when it uses source-native 7D fundamentals, avoiding mixed-period "price outran fundamentals" comparisons.
+- Leaves unavailable 1-month protocol TVL change blank instead of inventing it.
+- Adds a shared Supabase worker fundamentals adapter so monitor and daily snapshots use the same TVL/fee definitions.
+- Daily snapshots now record supported fundamentals for LINK, SUI, TIA and TAO as well as the original four protocol assets. AKT provider utilization remains live-only because the snapshot schema does not have a compute-utilization field.
+- Monitor expands protocol TVL/fee rules to LINK, and chain fee monitoring to SUI/TIA/TAO. SUI may use chain TVL for FDV/TVL; TAO and TIA deliberately do not because their chain-TVL semantics make that ratio misleading or unusable.
+- Existing Cron schedules do not change. Redeploy both `monitor` and `daily-snapshot` Edge Functions because their code and shared helper changed.
+- No database migration is required.

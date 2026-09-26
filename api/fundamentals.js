@@ -44,8 +44,8 @@ async function protocolAsset(sym,slug,protocols){
 async function chainAsset(sym,chain,feeSlug){
  const [hist,x]=await Promise.all([j(`https://api.llama.fi/v2/historicalChainTvl/${encodeURIComponent(chain)}`),feeBundle(feeSlug)]);
  const rows=Array.isArray(hist)?hist:[],last=rows.length?rows[rows.length-1]:null;
- const tvl=num(last?.tvl??last?.[1]),tvl7d=latestChange(rows,7),tvl1m=latestChange(rows,30);
- return [sym,{tvl,tvl1d:null,tvl7d,tvl1m,...x,
+ const tvl=num(last?.tvl??last?.[1]),tvl7d=latestChange(rows,7);
+ return [sym,{tvl,tvl1d:null,tvl7d,tvl1m:null,...x,
   decisionEligible:[tvl7d,x.fees7dChange,x.revenue7dChange].filter(v=>v!=null).length>=1,
   sourceNote:`DefiLlama ${chain} chain TVL + ${feeSlug} activity · 7D activity change compares current 7D with the prior 7D`}]
 }
