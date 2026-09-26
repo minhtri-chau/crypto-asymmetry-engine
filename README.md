@@ -1,24 +1,27 @@
-# Crypto Asymmetry Engine v5.3
+# Crypto Asymmetry Engine v5.4
 
-Rules + trend/regime + persistence foundation.
+Security and reliability pass before real persistence.
 
-## v5.2 bug fixes
-- Adds Bought at ($), enabling Portfolio P/L
-- Rule priority is risk -> profit -> buy, so a stop-loss cannot be hidden by a buy-zone hit
-- Automatically migrates legacy `cae_snapshots` into snapshot history
-- Keeps local plans/snapshots working while database setup is pending
+## Fixes
+- Local `npm run dev` now shows Trend feed unavailable instead of an endless Loading state when Vercel functions are absent.
+- Trend endpoint limits upstream fan-out to batches of 2 with a short delay and caches results for 30 minutes.
+- BTC history is reused instead of fetched repeatedly.
+- Portfolio explicitly labels current persistence as LOCAL STORAGE.
+- Legacy snapshot migration from v5/v5.1 remains enabled.
 
-## v5.3
-- Server-side 50-day and 200-day moving averages
-- 30-day asset return and relative strength vs Bitcoin
-- BTC trend-based market regime
-- `/api/trends` and `/api/regime` with Vercel caching
-- Supabase/Postgres schema for plans and snapshot history
-- Existing `/api/evidence` remains the adapter boundary for unlocks, flows and catalysts
+## Database
+`supabase.sql` now:
+- references authenticated Supabase users
+- enables Row Level Security on plans and snapshots
+- limits CRUD to `auth.uid() = user_id`
+- revokes table access from anonymous users
+- grants only required operations to authenticated users
 
-## Not yet claimed
-- No reliable automatic unlock schedule until a stable/licensed provider is connected
-- No background push notifications yet
-- No fear/greed or stablecoin-flow regime input yet
-- AKT/LINK/TAO/TIA/SUI still need asset-specific fundamental adapters
-- Supabase schema is included, but frontend remains local-first until credentials/auth are configured
+The frontend is intentionally NOT connected yet. Create/configure the Supabase project, run the SQL, and add environment values first. Until then the app remains local-first.
+
+## Next after Supabase configuration
+- Auth + database sync with local-to-cloud migration
+- Background rule checks / notifications
+- Reliable unlock provider
+- Stablecoin-flow + sentiment regime inputs
+- Asset-specific fundamentals for AKT/LINK/TAO/TIA/SUI
