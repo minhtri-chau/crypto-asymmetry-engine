@@ -10,9 +10,15 @@ function latestChange(rows,days){
  let old=null;for(const x of clean){if(x.date<=target)old=x;else break}
  return old?pct(now.tvl,old.tvl):null
 }
+// /summary/fees/{slug} does not return change_7dover7d, so derive it from the daily totalDataChart it already includes.
+function chart7dOver7d(s){
+ const c=(s?.totalDataChart||[]).filter(p=>Array.isArray(p)&&p.length===2);if(c.length<14)return null;
+ const sum=a=>a.reduce((t,p)=>t+(num(p[1])||0),0),last=sum(c.slice(-7)),prev=sum(c.slice(-14,-7));
+ return prev>0?(last/prev-1)*100:null
+}
 function summaryFields(fees,rev,holders){
- return {fees30d:num(fees?.total30d),fees7d:num(fees?.total7d),fees7dChange:num(fees?.change_7dover7d),
- revenue30d:num(rev?.total30d),revenue7d:num(rev?.total7d),revenue7dChange:num(rev?.change_7dover7d),
+ return {fees30d:num(fees?.total30d),fees7d:num(fees?.total7d),fees7dChange:num(fees?.change_7dover7d)??chart7dOver7d(fees),
+ revenue30d:num(rev?.total30d),revenue7d:num(rev?.total7d),revenue7dChange:num(rev?.change_7dover7d)??chart7dOver7d(rev),
  holdersRevenue30d:num(holders?.total30d)}
 }
 async function feeBundle(slug){
@@ -22,10 +28,17 @@ async function feeBundle(slug){
   j(`https://api.llama.fi/summary/fees/${slug}?dataType=dailyHoldersRevenue`)
  ]);return summaryFields(fees,rev,holders)
 }
-async function protocolAsset(sym,slug,bySlug){
- const p=bySlug[slug]||{},x=await feeBundle(slug);
- return [sym,{tvl:num(p.tvl),tvl1d:num(p.change_1d),tvl7d:num(p.change_7d),tvl1m:num(p.change_1m),...x,
-  decisionEligible:[num(p.change_7d),x.fees7dChange,x.revenue7dChange].filter(v=>v!=null).length>=1,
+// These slugs are DefiLlama parent protocols: /protocols lists only their children (parentProtocol "parent#slug").
+// Current TVL comes from /tvl/{slug}; period changes are TVL-weighted across children, or null if any child lacks the field.
+function parentChanges(protocols,slug){
+ const kids=protocols.filter(p=>(p.slug===slug||p.parentProtocol===`parent#${slug}`)&&num(p.tvl)>0);
+ const chg=k=>{if(!kids.length||kids.some(p=>num(p[k])==null))return null;const now=kids.reduce((t,p)=>t+num(p.tvl),0),old=kids.reduce((t,p)=>t+num(p.tvl)/(1+num(p[k])/100),0);return old>0?(now/old-1)*100:null};
+ return{tvl1d:chg("change_1d"),tvl7d:chg("change_7d"),tvl1m:chg("change_1m")}
+}
+async function protocolAsset(sym,slug,protocols){
+ const[tvl,x]=await Promise.all([j(`https://api.llama.fi/tvl/${slug}`),feeBundle(slug)]),c=parentChanges(protocols,slug);
+ return [sym,{tvl:typeof tvl==="number"?tvl:null,...c,...x,
+  decisionEligible:[c.tvl7d,x.fees7dChange,x.revenue7dChange].filter(v=>v!=null).length>=1,
   sourceNote:"DefiLlama protocol fundamentals · 7D activity change compares current 7D with the prior 7D"}]
 }
 async function chainAsset(sym,chain,feeSlug){
@@ -49,8 +62,8 @@ async function akash(){
 export default async function handler(req,res){
  try{
   res.setHeader("Cache-Control","s-maxage=300, stale-while-revalidate=600");
-  const protocols=await j("https://api.llama.fi/protocols");const bySlug={};(protocols||[]).forEach(p=>bySlug[p.slug]=p);
-  const tasks=Object.entries(PROTOCOLS).map(([s,l])=>protocolAsset(s,l,bySlug));
+  const protocols=(await j("https://api.llama.fi/protocols"))||[];
+  const tasks=Object.entries(PROTOCOLS).map(([s,l])=>protocolAsset(s,l,protocols));
   tasks.push(chainAsset("TIA","Celestia","celestia"),chainAsset("SUI","Sui","sui"));
   // TAO uses chain TVL plus Chutes paid AI-compute revenue as an ecosystem activity proxy, clearly labeled.
   tasks.push((async()=>{const [sym,x]=await chainAsset("TAO","Bittensor","chutes");x.sourceNote="DefiLlama Bittensor chain TVL + Chutes paid AI-compute revenue proxy · not total TAO token economics";return[sym,x]})());
