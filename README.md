@@ -1,15 +1,14 @@
-# Crypto Asymmetry Engine v5
+# Crypto Asymmetry Engine v5.1
 
-Decision-engine foundation.
+Adds the next evidence layer without pretending incomplete data is complete.
 
 ## New
-- Dynamic Live Evidence score, kept separate from the qualitative Research Score
-- Explicit data coverage percentage
-- Derived valuation metrics: MC/TVL, FDV/TVL, annualized fees/FDV, annualized revenue/FDV, FDV/MC
-- Fundamentals momentum and valuation subscores
-- Browser-persisted comparison snapshots
-- Per-asset change view for price, TVL, fees and revenue
-- Scanner includes Live Evidence
-- Entry Score remains locked until dilution/unlocks, catalysts, flows and token value capture are validated
+- Live circulating, total and max supply from the existing market feed
+- Supply-overhang / dilution readiness metrics
+- Remaining-supply percentage
+- Separate catalyst-monitoring metadata with explicit status
+- Separate token-value-capture evidence with explicit status
+- DefiLlama holder revenue requested separately where supported
+- Entry Score remains locked because exact unlock schedules, flows and catalyst confirmation are not yet complete
 
-Local snapshots use browser localStorage. A database/backend is the next persistence upgrade.
+Important: circulating/supply-cap is not an unlock calendar. It measures supply overhang only.
