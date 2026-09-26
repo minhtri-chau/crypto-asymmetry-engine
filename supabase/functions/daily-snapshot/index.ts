@@ -26,8 +26,14 @@ Deno.serve(async(req)=>{
    ]);
    fund[sym]={tvl:typeof tvl==="number"?tvl:null,fees30d:fees?.total30d??null,revenue30d:rev?.total30d??null};
  }));
- const{data:users,error:ue}=await db.schema("auth").from("users").select("id");
- if(ue)return Response.json({error:"Unable to enumerate users"},{status:500});
+ // auth.users is not exposed through the Data API; list accounts with the Admin API instead.
+ const users:{id:string}[]=[];
+ for(let page=1;;page++){
+   const{data,error:ue}=await db.auth.admin.listUsers({page,perPage:1000});
+   if(ue)return Response.json({error:"Unable to enumerate users"},{status:500});
+   users.push(...data.users);
+   if(data.users.length<1000)break;
+ }
  const now=new Date(),dayStart=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate())).toISOString(),capturedAt=now.toISOString();
  let inserted=0,skipped=0;
  for(const u of users||[]){
