@@ -455,3 +455,25 @@ Do not put `MONITOR_CRON_SECRET` or a Supabase secret/service-role key in any `V
 - Prevents auth actions until an email and a password of at least 6 characters are present.
 - Makes account creation explicitly prevent the form submit path before calling Supabase Auth.
 - Preserves the v5.5 duplicate-migration compatibility guard and all v5.8 monitor code.
+
+
+## v5.9 monitoring quality release
+
+v5.9 intentionally keeps notifications inside the web app. No email provider is required.
+
+- Active and Resolved tabs on Alerts, with observed value, threshold, trigger time and resolution time.
+- Deleted plans and removed rules no longer leave stale active alerts. The monitor resolves the event and removes obsolete monitor state on the next cron run.
+- Changing a rule threshold resets that rule. If the new threshold is already triggered, a fresh event is created for the new threshold.
+- The worker fetches DefiLlama data only when a saved rule needs TVL or fee data, and uses direct per-protocol requests instead of downloading the complete protocol directory every five minutes.
+- Optional CoinGecko Demo API authentication is supported through the Edge Function secret `COINGECKO_DEMO_API_KEY`. The worker still works without it using the public endpoint.
+- The v5.8 TypeScript numeric narrowing fixes are preserved.
+- The v5.5/v5.6 duplicate-snapshot migration compatibility guard is preserved.
+
+### v5.9 deployment
+
+1. No database schema change is required. Re-running `supabase.sql` is safe but optional.
+2. Deploy the updated `supabase/functions/monitor/index.ts` over the existing `monitor` Edge Function.
+3. Keep JWT verification disabled for `monitor`; it continues to authenticate the cron request with `MONITOR_CRON_SECRET`.
+4. The existing five-minute Cron job does not need to be recreated.
+5. Optional: create a CoinGecko Demo key and store it only as the Edge Function secret `COINGECKO_DEMO_API_KEY`.
+6. Push the frontend files to GitHub `main`; Vercel will deploy the Active/Resolved Alerts UI.
