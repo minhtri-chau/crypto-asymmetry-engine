@@ -1,11 +1,15 @@
-# Crypto Asymmetry Engine v4
+# Crypto Asymmetry Engine v5
 
-Adds a live protocol-fundamentals pipeline to the v3 decision-support dashboard.
+Decision-engine foundation.
 
-- CoinGecko: price, market cap, FDV, volume
-- DefiLlama: TVL, TVL momentum, 30d fees and 30d protocol revenue where protocol-level coverage is mapped
-- Unsupported metrics remain blank
-- Entry Score remains evidence-gated until dilution, catalysts, flows and corrected scoring are connected
-- Fundamentals refresh every 5 minutes
+## New
+- Dynamic Live Evidence score, kept separate from the qualitative Research Score
+- Explicit data coverage percentage
+- Derived valuation metrics: MC/TVL, FDV/TVL, annualized fees/FDV, annualized revenue/FDV, FDV/MC
+- Fundamentals momentum and valuation subscores
+- Browser-persisted comparison snapshots
+- Per-asset change view for price, TVL, fees and revenue
+- Scanner includes Live Evidence
+- Entry Score remains locked until dilution/unlocks, catalysts, flows and token value capture are validated
 
-Research decision support, not automated trading.
+Local snapshots use browser localStorage. A database/backend is the next persistence upgrade.
