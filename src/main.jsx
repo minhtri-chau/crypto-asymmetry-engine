@@ -132,6 +132,8 @@ useEffect(()=>{let cancelled=false;(async()=>{
   if(!localStorage.getItem(marker)){
    // Only migrate legacy pre-account data once. Never copy another signed-in user's cache.
    const legacyMarker="cae_legacy_claimed_v56";
+   // Browsers that already migrated under v5.5 stored cloud rows in the legacy keys; re-inserting them would duplicate snapshots.
+   if(localStorage.getItem(`cae_cloud_migrated_${uid}`)&&!localStorage.getItem(legacyMarker))localStorage.setItem(legacyMarker,uid);
    if(!localStorage.getItem(legacyMarker)){
     const lp=readLegacyPlans(),ls=readLegacySnapshots();
     const planRows=Object.entries(lp).map(([s,p])=>dbPlan(s,p,uid));
