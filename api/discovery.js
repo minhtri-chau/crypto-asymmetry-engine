@@ -44,7 +44,7 @@ function scoreParts(x){
  const observed=[x.volumeToMarketCap,x.marketCap,x.dilution,x.return7d,x.return30d,f.tvl7d,feeObserved?f.fees7dChange:null,feeObserved?f.fees30d:null];
  const evidenceCoverage=Math.round(observed.filter(v=>v!=null).length/observed.length*100);
  return{rawScore:raw,evidenceScore,evidenceCoverage,scoringVersion:"setup-v3",extensionPenalty:penalty,hasFundamental,
-  scoreParts:{liquidity:Math.round(liquidity),size:Math.round(size),supply:Math.round(supply),confirmation:Math.round(confirmation),fundamental:Math.round(fundamental),extensionPenalty:penalty}}
+  scoreParts:{liquidity:Math.round(liquidity),size:Math.round(size),supply:Math.round(supply),confirmation:Math.round(confirmation),fundamental:Math.round(fundamental),extensionPenalty:penalty,availableMax:Math.round(availableMax)}}
 }
 function rankCandidates(rows){const s=[...rows].sort((a,b)=>b.rawScore-a.rawScore||b.evidenceCoverage-a.evidenceCoverage||b.volume24h-a.volume24h),n=s.length;s.forEach((x,i)=>{x.rank=i+1;x.priorityPercentile=n<=1?100:Math.round(100*(1-i/(n-1)));delete x.rawScore});return s}
 export default async function handler(req,res){try{

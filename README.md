@@ -772,3 +772,13 @@ v8.9 expands what the engine observes without silently retuning the Entry/Positi
 - **Freshness is explicit.** Research detail shows Current Setup from the Scanner separately from the timestamped last daily evaluation. Decision status remains tied to the recorded daily evaluation until the monitor runs again.
 - **Per-asset CoinGecko traffic is consolidated.** Price action and narrative/attention now share `/api/research-context`, so the 365-day asset history is fetched once and reused instead of being requested by separate research endpoints.
 - Scanner rank remains research triage, not a buy ranking. Entry/Position signals still require the deeper Thesis, coverage, price-action and market-regime gates.
+
+
+## v8.9.2 explainable Setup + research price chart
+
+- **Current Setup is now auditable on every Research detail page.** The page shows the points earned for Liquidity, Market quality / size, Supply / dilution, Price confirmation, Fundamentals, and the Extension penalty.
+- **Every Setup criterion explains itself.** The UI states what the criterion measures, the exact scoring bands that earn a high score, and the asset's current underlying metric. This makes a score such as `84/100` inspectable rather than a black box.
+- **Normalization stays visible.** The breakdown shows raw points divided by the currently available Setup denominator. This preserves the v8.9.1 rule that a fee lookup skipped because of the API budget is not treated as weak evidence.
+- **Research price chart:** each actively researched asset now has `1M / 3M / 6M / 1Y` chart controls with daily price, 50-day MA and 200-day MA.
+- **No extra CoinGecko chart request.** `/api/research-context` returns the same 365-day history already used by RSI, moving averages, relative strength and extension detection. Range changes happen in the browser.
+- The chart is context, not a new scoring input. Existing Entry/Position thresholds are unchanged in v8.9.2.
