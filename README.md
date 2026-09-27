@@ -724,3 +724,7 @@ v8.6 stops using one quantitative number as a proxy for the whole research thesi
 - This removes the old 63% contradiction: the shelf and daily evaluator now use the same 75% Data Coverage gate.
 - Research Priority combines Thesis Strength, Setup Evidence, Data Coverage and recent Setup change only for routing attention. It is not an Entry Score or trade recommendation.
 - Owned assets remain pinned regardless of these gates until marked sold, while deterioration warnings remain visible.
+
+
+## v8.7 automated entry + position signals
+v8.7 removes manual research entry from the visible workflow and adds automated historical price-pattern analysis. `/api/research-signal` uses one year of CoinGecko daily history plus BTC to calculate moving averages, RSI, returns, relative strength, drawdown, trend/pullback and extension. Unowned assets receive Entry Signals (`RESEARCH NEEDED`, `WAIT`, `WAIT / OVEREXTENDED`, `WATCH ENTRY`, `ENTRY ATTRACTIVE`). Owned assets receive Position Signals (`HOLD / MONITOR`, `REASSESS POSITION`, `PROFIT-TAKING REVIEW`, `EXIT / THESIS REVIEW`). `strengthening` is explicitly not a buy signal and `reassess` is explicitly not an automatic sell signal. Price action informs timing, not fundamentals; missing qualitative dimensions remain explicit instead of being fabricated.

@@ -92,3 +92,6 @@
 
 /* v8.6 scoring semantics */
 .scoreStack{flex-wrap:wrap}.thesisStrengthInput input{max-width:140px;margin-top:8px}.thesisStrengthInput small{display:block;margin-top:7px;max-width:680px}.priorityCard .evidenceLine+.evidenceLine{margin-top:8px}
+
+/* v8.7 automated entry + position decision layer */
+.decisionHero{padding:18px;border:1px solid #294238;margin:14px 0 20px}.decisionHero small{display:block;margin-bottom:8px}.decisionSignal{font-size:16px;letter-spacing:.04em}.decisionSignal.strong,.decisionSignal.hold{color:#5dffad}.decisionSignal.watch{color:#b9f7d1}.decisionSignal.wait,.decisionSignal.review{color:#ffd76a}.decisionSignal.exit{color:#ff826f}.decisionSignal.profit{color:#7ee7ff}.decisionSignal.research{color:#b4b9b6}.autoResearchRow{padding:12px 0;border-top:1px solid #203029}.autoResearchRow span{font-size:11px;text-transform:uppercase;color:#789086}.autoResearchRow p{margin:5px 0 0}.decisionBox{border-color:#345447}
