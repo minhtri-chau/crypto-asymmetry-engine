@@ -791,3 +791,17 @@ v8.9 expands what the engine observes without silently retuning the Entry/Positi
 - Touch/pointer events are supported as well as a mouse.
 - **Promotion Review build fix is part of the release source:** the map closure is `</button>)}`. The invalid `</button>})}` sequence is now a release-blocking check.
 - No Supabase, Cron, environment-variable, scoring, or dependency change.
+
+
+## v8.9.4 transaction-based positions
+
+- Research detail now has a **Your position** ledger with an explicit **Save Purchase** action.
+- Every purchase stores token amount, USD price per token, purchase date and optional note as its own private Supabase row.
+- Multiple purchases automatically produce weighted-average cost, total tokens held, total USD cost basis, current value, unrealized gain/loss in dollars and unrealized return percentage.
+- Saving the first purchase synchronizes the existing plan and research ownership state so Portfolio, Highest-priority Research and Position Signal continue to work with one owned-position concept.
+- Deleting a purchase recalculates the position and compatibility fields.
+- Existing single-entry Amount / Entry Price values are not silently rewritten. If present with no ledger rows, Research offers **Import into ledger**, allowing the user to confirm the date before saving.
+- The old ambiguous Amount / Bought at inputs are removed from Buy & Sell Plan. That panel remains for monitoring thresholds and thesis-break rules.
+- Purchase history is private under Supabase RLS.
+- Signal Journal observations now also record token amount, average cost, total cost basis and unrealized P/L context, so later post-buy outcome analysis can distinguish market evidence from the economics of your actual position.
+- v8.9.4 tracks buys and unrealized P/L. Sales and realized P/L remain a future extension rather than being approximated.
