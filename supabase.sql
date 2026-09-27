@@ -271,3 +271,10 @@ revoke all on public.signal_observations from anon;
 grant select,insert,update on public.signal_observations to authenticated;
 
 -- v8.8.1 evidence-safety cleanup requires no schema migration.
+
+
+-- v8.9 observational intelligence + validation journal v2 (additive, safe to re-run)
+alter table public.signal_observations add column if not exists narrative_state text;
+alter table public.signal_observations add column if not exists attention_score numeric;
+alter table public.signal_observations add column if not exists rotation_state text;
+alter table public.signal_observations add column if not exists competitive_momentum numeric;

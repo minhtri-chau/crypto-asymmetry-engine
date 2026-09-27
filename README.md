@@ -740,9 +740,24 @@ Entry wording is intentionally evidence-oriented: `ENTRY ATTRACTIVE` becomes `AT
 
 A new private `signal_observations` journal records one signal observation per researched asset/day/mode when the detail page has enough live evidence. It stores price, thesis/setup scores, regime and price-pattern state so future versions can calculate +7D/+30D/+90D outcomes and test whether the rules actually add value. v8.8 starts collecting evidence; it does not auto-optimize thresholds from a small sample.
 
+
 ## v8.8.1 evidence-safety cleanup
 - DefiLlama matching scores the whole parent protocol family instead of whichever child/version carries the CoinGecko ID.
 - Thesis Strength is not surfaced as a headline score below 55% Thesis Coverage; the UI says `Insufficient thesis evidence`.
 - Owned positions cannot reach `EXIT REVIEW` merely because automated Thesis Strength is low. Saved risk rules still have priority; otherwise strong exit review requires concrete deterioration plus at least 65% Thesis Coverage.
 - Discovery attaches family-level TVL evidence to every eligible matched protocol. Fee-history enrichment covers up to 60 matched assets selected by market quality/liquidity rather than only the 30 largest market caps.
 - Missing evidence remains uncertainty, not negative evidence.
+
+
+## v8.9 observable intelligence architecture
+
+v8.9 expands what the engine observes without silently retuning the Entry/Position decision thresholds.
+
+- **Narrative / Attention:** researched assets get an observational attention state from CoinGecko trending presence, 7D-vs-prior-7D trading-volume acceleration, and project categories. Attention is explicitly not treated as proof of capital inflow or fundamental quality.
+- **Capital Rotation:** Market Regime now separately reports rotation state, alt-risk budget, ETH/BTC relative strength, BTC dominance, stablecoin supply trend, and top-100 7D/30D breadth.
+- **Competitive Momentum:** when DefiLlama identity/category data is available, research detail compares whole-project-family TVL growth against its sector and reports current TVL share plus relative 7D momentum.
+- **Catalyst Quality:** remains `PENDING VERIFIED SOURCE INGESTION`. v8.9 deliberately does not turn unsourced headlines into scored catalysts.
+- **Thesis Checkpoints:** research detail exposes supported, neutral, warning, and pending checkpoints across thesis coverage, setup coverage, price timing, market regime, attention, competitive momentum, and catalyst evidence.
+- **Signal Journal v2:** observations now also store narrative state, attention proxy, rotation state, and competitive momentum. These are collected for future validation rather than used to auto-optimize thresholds now.
+- **Discovery fee-budget safety:** `NOT_QUERIED`, `NO_DATA`, `FETCH_FAILED`, and available fee evidence are distinct. Followed research assets receive fee-enrichment priority. Evidence quality is normalized over queried/observed dimensions so falling outside the 60-call fee budget cannot by itself lower the quality score; Coverage remains the confidence gate.
+- **ATH drawdown remains context only.** It does not earn Thesis or Entry points merely because a prior high implies a large multiple.
