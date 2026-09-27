@@ -761,3 +761,14 @@ v8.9 expands what the engine observes without silently retuning the Entry/Positi
 - **Signal Journal v2:** observations now also store narrative state, attention proxy, rotation state, and competitive momentum. These are collected for future validation rather than used to auto-optimize thresholds now.
 - **Discovery fee-budget safety:** `NOT_QUERIED`, `NO_DATA`, `FETCH_FAILED`, and available fee evidence are distinct. Followed research assets receive fee-enrichment priority. Evidence quality is normalized over queried/observed dimensions so falling outside the 60-call fee budget cannot by itself lower the quality score; Coverage remains the confidence gate.
 - **ATH drawdown remains context only.** It does not earn Thesis or Entry points merely because a prior high implies a large multiple.
+
+
+## v8.9.1 Setup consistency + request consolidation
+
+- **Current Setup is one concept across Scanner, Dashboard and Research.** Tracked assets now show the Scanner's current Setup Evidence on those surfaces, while the scheduled Supabase evaluation is explicitly labeled as the last daily evaluation with its timestamp.
+- **Setup scoring is versioned as `setup-v3`.** New `research_evaluations` rows persist `scoring_version`; the signal journal persists the model version that drove the recorded decision.
+- **Discovery and `research-monitor` use the same setup-v3 scale semantics.** Market-only assets keep the full 83-point denominator, preventing missing fundamentals from inflating scores. Fee evidence excluded only because of the 60-call budget or a transient fetch failure is not treated as weak evidence.
+- **Historical scores remain historical.** Old evaluations are not rewritten. Research history labels legacy rows separately so score changes caused by model revisions are auditable.
+- **Freshness is explicit.** Research detail shows Current Setup from the Scanner separately from the timestamped last daily evaluation. Decision status remains tied to the recorded daily evaluation until the monitor runs again.
+- **Per-asset CoinGecko traffic is consolidated.** Price action and narrative/attention now share `/api/research-context`, so the 365-day asset history is fetched once and reused instead of being requested by separate research endpoints.
+- Scanner rank remains research triage, not a buy ranking. Entry/Position signals still require the deeper Thesis, coverage, price-action and market-regime gates.

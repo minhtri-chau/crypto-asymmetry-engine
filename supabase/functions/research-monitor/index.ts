@@ -13,9 +13,13 @@ function score(x:any,f:any){
  const liquidity=clamp(vol/.10,0,1)*18,size=x.market_cap>0?clamp((Math.log10(x.market_cap)-7.3)/2.7,0,1)*10:0,supply=d==null?3:d<=1.2?10:d<=1.5?8:d<=2?5:d<=3?2:0;
  const confirmation=(r7==null?0:r7>=-8&&r7<=15?8:r7>15&&r7<=25?5:r7<-8?2:0)+(r30==null?0:r30>=-15&&r30<=30?7:r30>30&&r30<=45?3:r30<-15?1:0);
  let fundamental=0;if(f){if(f.tvl7d!=null)fundamental+=f.tvl7d>15?10:f.tvl7d>5?8:f.tvl7d>0?5:f.tvl7d>-10?2:0;if(f.fees7dChange!=null)fundamental+=f.fees7dChange>30?12:f.fees7dChange>10?10:f.fees7dChange>0?6:f.fees7dChange>-15?2:0;if(f.fees30d!=null&&x.fully_diluted_valuation>0){const y=f.fees30d*12/x.fully_diluted_valuation;fundamental+=y>.15?8:y>.07?6:y>.03?4:y>.01?2:0}}
- const penalty=extensionPenalty(r7,r30),raw=liquidity+size+supply+confirmation+fundamental-penalty,evidence=Math.round(clamp(raw/83*100,0,100));
- const observed=[vol,x.market_cap,d,r7,r30,f?.tvl7d,f?.fees7dChange,f?.fees30d],coverage=Math.round(observed.filter(v=>v!=null).length/8*100);
- return{evidence,coverage,r7,r30,d,penalty,fees7dChange:f?.fees7dChange??null,tvl7d:f?.tvl7d??null}
+ const penalty=extensionPenalty(r7,r30),hasFundamental=!!f&&[f.tvl,f.fees30d].some(v=>v!=null),feeObserved=!!f&&[f.fees7dChange,f.fees30d].some(v=>v!=null);
+ // setup-v3: same scale semantics as Discovery. No-fundamentals assets retain the full 83-point scale.
+ // A transient fee fetch failure is excluded from the denominator, not interpreted as weak fundamentals.
+ const availableMax=!hasFundamental?83:18+10+10+15+(f?.tvl7d!=null?10:0)+(f?.feeStatus==="FETCH_FAILED"?0:20);
+ const raw=liquidity+size+supply+confirmation+fundamental-penalty,evidence=Math.round(clamp(raw/Math.max(availableMax,1)*100,0,100));
+ const observed=[vol,x.market_cap,d,r7,r30,f?.tvl7d,feeObserved?f?.fees7dChange:null,feeObserved?f?.fees30d:null],coverage=Math.round(observed.filter(v=>v!=null).length/8*100);
+ return{evidence,coverage,scoringVersion:"setup-v3",r7,r30,d,penalty,fees7dChange:f?.fees7dChange??null,tvl7d:f?.tvl7d??null}
 }
 function thesisScore(x:any,f:any){
  const mc=num(x.market_cap),fdv=num(x.fully_diluted_valuation),vol=num(x.total_volume),d=fdv&&mc?fdv/mc:null,volMc=vol&&mc?vol/mc:null,feeYield=f?.fees30d!=null&&fdv?f.fees30d*12/fdv:null,fdvTvl=f?.tvl&&fdv?fdv/f.tvl:null;
@@ -54,10 +58,10 @@ Deno.serve(async req=>{
  const mm=new Map(market.map((x:any)=>[x.id,x])),protocols=await fj("https://api.llama.fi/protocols")||[],pm=protocolMap(protocols);let evaluated=0;
  for(const a of assets){
   const m=mm.get(a.coingecko_id);if(!m)continue;const p=pm.x(a.coingecko_id,a.symbol);let f:any=null;
-  if(p){const fees=await fj(`https://api.llama.fi/summary/fees/${p.slug}?dataType=dailyFees`);f={tvl:p.tvl,tvl7d:p.tvl7d,fees30d:num(fees?.total30d),fees7dChange:num(fees?.change_7dover7d)??chart7(fees)}}
+  if(p){const fees=await fj(`https://api.llama.fi/summary/fees/${p.slug}?dataType=dailyFees`);f={tvl:p.tvl,tvl7d:p.tvl7d,fees30d:num(fees?.total30d),fees7dChange:num(fees?.change_7dover7d)??chart7(fees),feeStatus:fees?"QUERIED":"FETCH_FAILED"}}
   const s=score(m,f),t=thesisScore(m,f),{data:prior}=await db.from("research_evaluations").select("evidence_score,evidence_coverage,status").eq("research_asset_id",a.id).order("evaluated_at",{ascending:false}).limit(1).maybeSingle(),st=state(s,!!a.is_owned,prior);
   if(t.score!=null)await db.from("research_assets").update({thesis_strength:t.score,thesis_coverage:t.coverage,thesis_components:t.parts,thesis_updated_at:new Date().toISOString()}).eq("id",a.id);
-  const{error:ie}=await db.from("research_evaluations").insert({user_id:a.user_id,research_asset_id:a.id,evidence_score:s.evidence,evidence_coverage:s.coverage,price:m.current_price,market_cap:m.market_cap??null,fdv:m.fully_diluted_valuation??null,volume_24h:m.total_volume??null,tvl:f?.tvl??null,fees_30d:f?.fees30d??null,return_7d:s.r7,return_30d:s.r30,fees_7d_change:f?.fees7dChange??null,tvl_7d_change:f?.tvl7d??null,dilution:s.d,status:st.status,reason:st.reason});if(!ie)evaluated++;
+  const{error:ie}=await db.from("research_evaluations").insert({user_id:a.user_id,research_asset_id:a.id,evidence_score:s.evidence,evidence_coverage:s.coverage,scoring_version:s.scoringVersion,price:m.current_price,market_cap:m.market_cap??null,fdv:m.fully_diluted_valuation??null,volume_24h:m.total_volume??null,tvl:f?.tvl??null,fees_30d:f?.fees30d??null,return_7d:s.r7,return_30d:s.r30,fees_7d_change:f?.fees7dChange??null,tvl_7d_change:f?.tvl7d??null,dilution:s.d,status:st.status,reason:st.reason});if(!ie)evaluated++;
  }
  return Response.json({ok:true,evaluated,coinGeckoDemoKey:!!cg,at:new Date().toISOString()})
 });

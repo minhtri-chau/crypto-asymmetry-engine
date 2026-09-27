@@ -36,14 +36,14 @@ function scoreParts(x){
  const penalty=extensionPenalty(r7,r30);
  // Normalize quality over evidence actually queried/observed so the fee-call budget itself cannot lower quality.
  // Coverage remains the confidence gate: a market-only asset can look strong on observed dimensions but cannot masquerade as well researched.
- const feeQueried=f.feeStatus&&f.feeStatus!=="NOT_QUERIED",feeObserved=[f.fees7dChange,f.fees30d].some(v=>v!=null),availableMax=!hasFundamental?83:18+10+10+15+(f.tvl7d!=null?10:0)+(["NOT_QUERIED","FETCH_FAILED"].includes(f.feeStatus)?0:20);
- // Only the fee-call budget (NOT_QUERIED) or a transient fetch failure is excluded from the denominator. An asset with
- // no observed DefiLlama TVL/fees keeps the full 83-point scale, so market-only assets cannot reach a high Evidence score by default.
+ const feeObserved=[f.fees7dChange,f.fees30d].some(v=>v!=null),availableMax=!hasFundamental?83:18+10+10+15+(f.tvl7d!=null?10:0)+(["NOT_QUERIED","FETCH_FAILED"].includes(f.feeStatus)?0:20);
+ // Market-only assets keep the full scale, preventing missing fundamentals from inflating quality.
+ // Only the fee-call budget or a transient fee fetch failure is removed from the denominator.
  const raw=liquidity+size+supply+confirmation+fundamental-penalty;
  const evidenceScore=Math.round(clamp(raw/Math.max(availableMax,1)*100,0,100));
  const observed=[x.volumeToMarketCap,x.marketCap,x.dilution,x.return7d,x.return30d,f.tvl7d,feeObserved?f.fees7dChange:null,feeObserved?f.fees30d:null];
  const evidenceCoverage=Math.round(observed.filter(v=>v!=null).length/observed.length*100);
- return{rawScore:raw,evidenceScore,evidenceCoverage,extensionPenalty:penalty,hasFundamental,
+ return{rawScore:raw,evidenceScore,evidenceCoverage,scoringVersion:"setup-v3",extensionPenalty:penalty,hasFundamental,
   scoreParts:{liquidity:Math.round(liquidity),size:Math.round(size),supply:Math.round(supply),confirmation:Math.round(confirmation),fundamental:Math.round(fundamental),extensionPenalty:penalty}}
 }
 function rankCandidates(rows){const s=[...rows].sort((a,b)=>b.rawScore-a.rawScore||b.evidenceCoverage-a.evidenceCoverage||b.volume24h-a.volume24h),n=s.length;s.forEach((x,i)=>{x.rank=i+1;x.priorityPercentile=n<=1?100:Math.round(100*(1-i/(n-1)));delete x.rawScore});return s}
@@ -61,6 +61,6 @@ export default async function handler(req,res){try{
  const candidates=ranked;
  res.setHeader("Cache-Control","s-maxage=900, stale-while-revalidate=1800");
  res.status(200).json({candidates,universe:{coinbaseSpotSymbols:cb.size,screened:best.size,eligible:rows.length,returned:candidates.length},
-  methodology:"Research Priority is relative rank within today's eligible Coinbase universe. Asymmetry Evidence is an absolute 0-100 evidence score and is not guaranteed to be high. Large recent gains are penalized; identity-safe DefiLlama project-family TVL evidence is attached across the eligible universe, with fee enrichment capped at 60 calls and prioritized for followed assets plus market-quality candidates. `NOT_QUERIED` is distinct from `NO_DATA`, and an asset is not quality-penalized merely for falling outside the fee-call budget. Missing fundamentals reduce evidence coverage rather than being treated as zero.",
+  setupScoringVersion:"setup-v3",methodology:"Research Priority is relative rank within today's eligible Coinbase universe. Asymmetry Evidence is an absolute 0-100 evidence score and is not guaranteed to be high. Large recent gains are penalized; identity-safe DefiLlama project-family TVL evidence is attached across the eligible universe, with fee enrichment capped at 60 calls and prioritized for followed assets plus market-quality candidates. `NOT_QUERIED` is distinct from `NO_DATA`, and an asset is not quality-penalized merely for falling outside the fee-call budget. Missing fundamentals reduce evidence coverage rather than being treated as zero.",
   fundamentalsEnrichment:enrichment,coinGeckoDemoKey:!!process.env.COINGECKO_DEMO_API_KEY,at:new Date().toISOString()});
  }catch(e){res.status(502).json({error:"discovery feed unavailable"})}}

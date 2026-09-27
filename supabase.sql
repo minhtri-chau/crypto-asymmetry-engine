@@ -278,3 +278,8 @@ alter table public.signal_observations add column if not exists narrative_state 
 alter table public.signal_observations add column if not exists attention_score numeric;
 alter table public.signal_observations add column if not exists rotation_state text;
 alter table public.signal_observations add column if not exists competitive_momentum numeric;
+
+
+-- v8.9.1 Setup Evidence consistency + model provenance (additive, safe to re-run)
+alter table public.research_evaluations add column if not exists scoring_version text;
+alter table public.signal_observations add column if not exists setup_scoring_version text;
