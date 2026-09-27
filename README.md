@@ -782,3 +782,12 @@ v8.9 expands what the engine observes without silently retuning the Entry/Positi
 - **Research price chart:** each actively researched asset now has `1M / 3M / 6M / 1Y` chart controls with daily price, 50-day MA and 200-day MA.
 - **No extra CoinGecko chart request.** `/api/research-context` returns the same 365-day history already used by RSI, moving averages, relative strength and extension detection. Range changes happen in the browser.
 - The chart is context, not a new scoring input. Existing Entry/Position thresholds are unchanged in v8.9.2.
+
+
+## v8.9.3 interactive chart inspection + Promotion Review guard
+
+- **Interactive research chart:** hover, click, or click-drag across the chart to inspect the nearest daily CoinGecko observation. A crosshair and tooltip show date, exact recorded daily price, 50D MA, and 200D MA.
+- Pointer interaction is browser-only and reuses the existing `priceHistory`; it creates no additional CoinGecko requests.
+- Touch/pointer events are supported as well as a mouse.
+- **Promotion Review build fix is part of the release source:** the map closure is `</button>)}`. The invalid `</button>})}` sequence is now a release-blocking check.
+- No Supabase, Cron, environment-variable, scoring, or dependency change.
