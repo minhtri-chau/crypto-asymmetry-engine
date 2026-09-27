@@ -15,6 +15,18 @@ function score(x:any,f:any){
  const observed=[vol,x.market_cap,d,r7,r30,f?.tvl7d,f?.fees7dChange,f?.fees30d],coverage=Math.round(observed.filter(v=>v!=null).length/8*100);
  return{evidence,coverage,r7,r30,d,penalty,fees7dChange:f?.fees7dChange??null,tvl7d:f?.tvl7d??null}
 }
+function thesisScore(x:any,f:any){
+ const mc=num(x.market_cap),fdv=num(x.fully_diluted_valuation),vol=num(x.total_volume),d=fdv&&mc?fdv/mc:null,volMc=vol&&mc?vol/mc:null,feeYield=f?.fees30d!=null&&fdv?f.fees30d*12/fdv:null,fdvTvl=f?.tvl&&fdv?fdv/f.tvl:null;
+ const liquidity=volMc==null?null:Math.round(clamp(45+volMc*220,20,90));
+ const supply=d==null?null:d<=1.15?90:d<=1.35?78:d<=1.7?64:d<=2.2?48:d<=3?32:18;
+ const traction=f?.fees7dChange!=null||f?.tvl7d!=null?Math.round(clamp(50+(f?.fees7dChange??0)*.55+(f?.tvl7d??0)*.65,10,95)):null;
+ let valuation=null;if(f?.fees30d!=null||f?.tvl!=null){let v=50;if(feeYield!=null)v+=feeYield>.15?25:feeYield>.07?16:feeYield>.03?8:feeYield<.01?-15:0;if(fdvTvl!=null)v+=fdvTvl<1?18:fdvTvl<3?10:fdvTvl>12?-18:fdvTvl>7?-8:0;valuation=Math.round(clamp(v,5,95))}
+ const marketQuality=mc==null?null:Math.round(clamp(35+(Math.log10(Math.max(mc,1))-7)*12,20,90));
+ const parts:any={fundamental_traction:traction,valuation,supply,liquidity,market_quality:marketQuality,token_value_capture:null,catalysts:null,qualitative_risk:null};
+ const weights:any={fundamental_traction:25,valuation:20,supply:15,liquidity:10,market_quality:10,token_value_capture:10,catalysts:5,qualitative_risk:5};let weighted=0,observed=0,total=0;for(const[k,w]of Object.entries(weights) as any){total+=w;if(parts[k]!=null){weighted+=parts[k]*w;observed+=w}}
+ const coverage=Math.round(observed/total*100),score=observed?Math.round(clamp(weighted/observed,0,100)):null;return{score,coverage,parts}
+}
+
 function state(s:any,owned:boolean,prev:any){
  const prevScore=num(prev?.evidence_score),delta=prevScore==null?null:s.evidence-prevScore;
  const fundamentalDrop=(s.fees7dChange!=null&&s.fees7dChange<=-25)||(s.tvl7d!=null&&s.tvl7d<=-20);
@@ -41,7 +53,8 @@ Deno.serve(async req=>{
  for(const a of assets){
   const m=mm.get(a.coingecko_id);if(!m)continue;const p=pm.x(a.coingecko_id,a.symbol);let f:any=null;
   if(p){const fees=await fj(`https://api.llama.fi/summary/fees/${p.slug}?dataType=dailyFees`);f={tvl:p.tvl,tvl7d:p.tvl7d,fees30d:num(fees?.total30d),fees7dChange:num(fees?.change_7dover7d)??chart7(fees)}}
-  const s=score(m,f),{data:prior}=await db.from("research_evaluations").select("evidence_score,evidence_coverage,status").eq("research_asset_id",a.id).order("evaluated_at",{ascending:false}).limit(1).maybeSingle(),st=state(s,!!a.is_owned,prior);
+  const s=score(m,f),t=thesisScore(m,f),{data:prior}=await db.from("research_evaluations").select("evidence_score,evidence_coverage,status").eq("research_asset_id",a.id).order("evaluated_at",{ascending:false}).limit(1).maybeSingle(),st=state(s,!!a.is_owned,prior);
+  if(t.score!=null)await db.from("research_assets").update({thesis_strength:t.score,thesis_coverage:t.coverage,thesis_components:t.parts,thesis_updated_at:new Date().toISOString()}).eq("id",a.id);
   const{error:ie}=await db.from("research_evaluations").insert({user_id:a.user_id,research_asset_id:a.id,evidence_score:s.evidence,evidence_coverage:s.coverage,price:m.current_price,market_cap:m.market_cap??null,fdv:m.fully_diluted_valuation??null,volume_24h:m.total_volume??null,tvl:f?.tvl??null,fees_30d:f?.fees30d??null,return_7d:s.r7,return_30d:s.r30,fees_7d_change:f?.fees7dChange??null,tvl_7d_change:f?.tvl7d??null,dilution:s.d,status:st.status,reason:st.reason});if(!ie)evaluated++;
  }
  return Response.json({ok:true,evaluated,coinGeckoDemoKey:!!cg,at:new Date().toISOString()})

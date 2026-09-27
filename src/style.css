@@ -95,3 +95,6 @@
 
 /* v8.7 automated entry + position decision layer */
 .decisionHero{padding:18px;border:1px solid #294238;margin:14px 0 20px}.decisionHero small{display:block;margin-bottom:8px}.decisionSignal{font-size:16px;letter-spacing:.04em}.decisionSignal.strong,.decisionSignal.hold{color:#5dffad}.decisionSignal.watch{color:#b9f7d1}.decisionSignal.wait,.decisionSignal.review{color:#ffd76a}.decisionSignal.exit{color:#ff826f}.decisionSignal.profit{color:#7ee7ff}.decisionSignal.research{color:#b4b9b6}.autoResearchRow{padding:12px 0;border-top:1px solid #203029}.autoResearchRow span{font-size:11px;text-transform:uppercase;color:#789086}.autoResearchRow p{margin:5px 0 0}.decisionBox{border-color:#345447}
+
+/* v8.8 automated thesis, regime and validation */
+.regimeBar b{letter-spacing:.03em}.automatedResearch .decisionHero{background:rgba(65,120,92,.04)}.scoreStack .score{min-width:145px}.signalValidation{border-color:#31433b}
