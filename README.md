@@ -739,3 +739,10 @@ The Market Regime feed now combines BTC 50D/200D trend, ETH/BTC 30D relative str
 Entry wording is intentionally evidence-oriented: `ENTRY ATTRACTIVE` becomes `ATTRACTIVE ENTRY SETUP`; owned deterioration uses `EXIT REVIEW`, not an automatic sell command.
 
 A new private `signal_observations` journal records one signal observation per researched asset/day/mode when the detail page has enough live evidence. It stores price, thesis/setup scores, regime and price-pattern state so future versions can calculate +7D/+30D/+90D outcomes and test whether the rules actually add value. v8.8 starts collecting evidence; it does not auto-optimize thresholds from a small sample.
+
+## v8.8.1 evidence-safety cleanup
+- DefiLlama matching scores the whole parent protocol family instead of whichever child/version carries the CoinGecko ID.
+- Thesis Strength is not surfaced as a headline score below 55% Thesis Coverage; the UI says `Insufficient thesis evidence`.
+- Owned positions cannot reach `EXIT REVIEW` merely because automated Thesis Strength is low. Saved risk rules still have priority; otherwise strong exit review requires concrete deterioration plus at least 65% Thesis Coverage.
+- Discovery attaches family-level TVL evidence to every eligible matched protocol. Fee-history enrichment covers up to 60 matched assets selected by market quality/liquidity rather than only the 30 largest market caps.
+- Missing evidence remains uncertainty, not negative evidence.

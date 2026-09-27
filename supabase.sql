@@ -269,3 +269,5 @@ create policy "signal_observations_insert_own" on public.signal_observations for
 create policy "signal_observations_update_own" on public.signal_observations for update using (auth.uid()=user_id) with check (auth.uid()=user_id);
 revoke all on public.signal_observations from anon;
 grant select,insert,update on public.signal_observations to authenticated;
+
+-- v8.8.1 evidence-safety cleanup requires no schema migration.
