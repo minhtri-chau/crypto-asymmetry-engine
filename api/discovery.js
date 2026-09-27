@@ -36,7 +36,9 @@ function scoreParts(x){
  const penalty=extensionPenalty(r7,r30);
  // Normalize quality over evidence actually queried/observed so the fee-call budget itself cannot lower quality.
  // Coverage remains the confidence gate: a market-only asset can look strong on observed dimensions but cannot masquerade as well researched.
- const feeQueried=f.feeStatus&&f.feeStatus!=="NOT_QUERIED",feeObserved=[f.fees7dChange,f.fees30d].some(v=>v!=null),availableMax=18+10+10+15+(f.tvl7d!=null?10:0)+(feeObserved?20:0);
+ const feeQueried=f.feeStatus&&f.feeStatus!=="NOT_QUERIED",feeObserved=[f.fees7dChange,f.fees30d].some(v=>v!=null),availableMax=!hasFundamental?83:18+10+10+15+(f.tvl7d!=null?10:0)+(["NOT_QUERIED","FETCH_FAILED"].includes(f.feeStatus)?0:20);
+ // Only the fee-call budget (NOT_QUERIED) or a transient fetch failure is excluded from the denominator. An asset with
+ // no observed DefiLlama TVL/fees keeps the full 83-point scale, so market-only assets cannot reach a high Evidence score by default.
  const raw=liquidity+size+supply+confirmation+fundamental-penalty;
  const evidenceScore=Math.round(clamp(raw/Math.max(availableMax,1)*100,0,100));
  const observed=[x.volumeToMarketCap,x.marketCap,x.dilution,x.return7d,x.return30d,f.tvl7d,feeObserved?f.fees7dChange:null,feeObserved?f.fees30d:null];
