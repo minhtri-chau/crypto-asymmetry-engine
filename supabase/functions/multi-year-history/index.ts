@@ -37,8 +37,9 @@ Deno.serve(async req=>{try{
   // Nothing useful to fetch if the overlap start somehow lies in the future.
   if(begin.getTime()>end.getTime())begin=new Date(end.getTime()-OVERLAP_DAYS*DAY);
   let rows:any[]=[];
-  // For normal incremental sync this is usually one tiny request. Full backfill retains safe 250-day windows.
-  for(let s=begin.getTime();s<=end.getTime();s+=250*DAY){const st=new Date(s),en=new Date(Math.min(end.getTime(),s+249*DAY)),c=await candles(product,st,en);for(const x of c||[]){if(!Array.isArray(x)||x.length<6)continue;const t=Number(x[0])*1000,p=Number(x[4]);if(!(p>0))continue;rows.push({user_id:a.user_id,research_asset_id:a.id,price_date:new Date(t).toISOString().slice(0,10),price:p,low:Number(x[1]),high:Number(x[2]),open:Number(x[3]),volume:Number(x[5]),source:"coinbase_exchange",source_symbol:product,imported_at:new Date().toISOString()})}await new Promise(r=>setTimeout(r,120))}
+  // For normal incremental sync this is usually one tiny request. Full backfill uses contiguous 250-day windows
+  // (at most 251 daily buckets, under Coinbase's 300 limit); the shared boundary candle is de-duplicated below.
+  for(let s=begin.getTime();s<=end.getTime();s+=250*DAY){const st=new Date(s),en=new Date(Math.min(end.getTime(),s+250*DAY)),c=await candles(product,st,en);for(const x of c||[]){if(!Array.isArray(x)||x.length<6)continue;const t=Number(x[0])*1000,p=Number(x[4]);if(!(p>0))continue;rows.push({user_id:a.user_id,research_asset_id:a.id,price_date:new Date(t).toISOString().slice(0,10),price:p,low:Number(x[1]),high:Number(x[2]),open:Number(x[3]),volume:Number(x[5]),source:"coinbase_exchange",source_symbol:product,imported_at:new Date().toISOString()})}await new Promise(r=>setTimeout(r,120))}
   rows=[...new Map(rows.map(x=>[x.price_date,x])).values()];
   for(let i=0;i<rows.length;i+=500){const{error}=await db.from("historical_price_daily").upsert(rows.slice(i,i+500),{onConflict:"user_id,research_asset_id,price_date,source"});if(error)throw error}
   imported+=rows.length;report.push({id:a.id,symbol:a.symbol,product,status:"IMPORTED",sync_mode:mode,from:begin.toISOString().slice(0,10),days_received:rows.length,last_existing:last?.[0]?.price_date||null});

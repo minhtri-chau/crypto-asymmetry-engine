@@ -18,7 +18,7 @@ async function persisted(db:any,uid:string,assetId:number){const rows=await allR
 // Coinbase Exchange daily candles, paged in 250-day windows (API max 300 buckets), ascending {t,p}. Used for the BTC
 // benchmark when BTC is not itself a researched asset, so multi-year observations are not dropped for lack of BTC dates.
 async function coinbaseDaily(product:string,days:number){const end=Date.now(),begin=end-days*DAY,m=new Map<number,number>();
- for(let e=end;e>begin;e-=250*DAY){const u=new URL(`https://api.exchange.coinbase.com/products/${encodeURIComponent(product)}/candles`);u.searchParams.set("granularity","86400");u.searchParams.set("start",new Date(Math.max(begin,e-249*DAY)).toISOString());u.searchParams.set("end",new Date(e).toISOString());
+ for(let e=end;e>begin;e-=250*DAY){const u=new URL(`https://api.exchange.coinbase.com/products/${encodeURIComponent(product)}/candles`);u.searchParams.set("granularity","86400");u.searchParams.set("start",new Date(Math.max(begin,e-250*DAY)).toISOString());u.searchParams.set("end",new Date(e).toISOString());
   const r=await fetch(u,{headers:{accept:"application/json","user-agent":"crypto-asymmetry-engine"}});if(!r.ok)throw new Error(`Coinbase candles ${product} ${r.status}`);
   for(const x of await r.json()){const t=Number(x?.[0])*1000,p=Number(x?.[4]);if(Number.isFinite(t)&&p>0)m.set(t,p)}await new Promise(z=>setTimeout(z,120))}
  return [...m.entries()].map(([t,p])=>({t,p})).sort((a,b)=>a.t-b.t)}
