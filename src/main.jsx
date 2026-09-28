@@ -414,7 +414,7 @@ function ResearchDetail({a,research,discovery,market,marketStatus,regime,auth,le
     prior_ai:ai.d?{observed_at:ai.d.observed_at,stance:ai.d.stance,confidence:ai.d.confidence,summary:ai.d.summary,assessment:ai.d.assessment}:null
    };
    const r=await fetch("/api/ai-research",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${auth.session.access_token}`},body:JSON.stringify({packet})});
-   const j=await r.json();if(!r.ok)throw new Error(j?.detail||j?.error||`AI Research ${r.status}`);
+   const raw=await r.text();let j=null;try{j=raw?JSON.parse(raw):null}catch{}if(!r.ok){const msg=j?.detail||j?.error||(r.status===504?"AI research timed out. Try again.":`AI Research ${r.status}${raw?`: ${raw.slice(0,180)}`:""}`);throw new Error(msg)}if(!j)throw new Error("AI research returned an unexpected non-JSON response.");
    const x=j.assessment,row={user_id:auth.session.user.id,research_asset_id:a.id,model:j.model,model_version:j.model_version,stance:x.stance,confidence:x.confidence,quant_ai_agreement:x.quant_ai_agreement,summary:x.summary,assessment:x,input_snapshot:packet,response_id:j.response_id};
    const{error}=await supabase.from("ai_research_assessments").insert(row);if(error)throw error;
    await ai.refresh();

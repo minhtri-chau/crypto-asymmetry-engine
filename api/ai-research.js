@@ -105,14 +105,19 @@ evidence and deterministic metrics. Do not treat absence of qualitative evidence
       })
     });
 
-    const j = await r.json();
+    // Read as text first: upstream errors are not always JSON (same failure mode fixed in v9.1.1 qualitative research).
+    const bodyText = await r.text();
+    let j = null;
+    try { j = JSON.parse(bodyText); } catch {}
     if (!r.ok) {
-      console.error("OpenAI API error", j);
-      return res.status(502).json({ error: "AI research request failed", detail: j?.error?.message || "Unknown upstream error" });
+      console.error("OpenAI API error", r.status, bodyText.slice(0, 1000));
+      return res.status(502).json({ error: "AI research request failed", detail: j?.error?.message || `OpenAI returned HTTP ${r.status}` });
     }
+    if (!j) return res.status(502).json({ error: "OpenAI returned an unexpected response" });
     const raw = outputText(j);
     if (!raw) return res.status(502).json({ error: "AI response contained no structured output" });
-    const assessment = JSON.parse(raw);
+    let assessment;
+    try { assessment = JSON.parse(raw); } catch { return res.status(502).json({ error: "AI returned invalid structured output" }); }
     return res.status(200).json({
       assessment,
       model: MODEL,
