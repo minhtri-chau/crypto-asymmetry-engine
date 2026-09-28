@@ -1,5 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const DAY=86400000,HORIZONS=[7,30,90],VERSION="replay-v9.2";
+// CoinGecko Demo/public keys only serve the past 365 days (error 10012 / HTTP 401 beyond that). Early replay
+// points therefore lack a 200D MA and are stored with trend_state INSUFFICIENT rather than failing the whole run.
+const HISTORY_DAYS=365;
 const num=(v:any)=>v==null?null:Number(v);
 const dateOnly=(t:number)=>new Date(t).toISOString().slice(0,10);
 function secretKey(){const k=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");if(k)return k;try{return JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")||"{}").default||null}catch{return null}}
@@ -35,9 +38,9 @@ Deno.serve(async req=>{try{
  const lookback=Math.min(365,Math.max(120,Number(body.lookback_days)||365)),cadence=Math.min(30,Math.max(1,Number(body.cadence_days)||7));
  const db=createClient(url,service,{auth:{persistSession:false}});
  const assets=await allRows(()=>db.from("research_assets").select("id,user_id,symbol,coingecko_id,stage").neq("stage","archived").not("coingecko_id","is",null).order("id",{ascending:true}));
- const btc=await cg("bitcoin",key,lookback+210);let obsCount=0,outCount=0,errors:any[]=[];
+ const btc=await cg("bitcoin",key,HISTORY_DAYS);let obsCount=0,outCount=0,errors:any[]=[];
  for(let i=0;i<assets.length;i+=4){await Promise.all(assets.slice(i,i+4).map(async(a:any)=>{try{
-   const hist=await cg(a.coingecko_id,key,lookback+210);if(hist.length<60)return;
+   const hist=await cg(a.coingecko_id,key,HISTORY_DAYS);if(hist.length<60)return;
    const latestT=hist[hist.length-1].t,start=latestT-lookback*DAY,rows:any[]=[];
    for(let t=start;t<=latestT-90*DAY;t+=cadence*DAY){
     const x=nearest(hist,t,2*DAY);if(!x)continue;const past=before(hist,x.t),bp=nearest(btc,x.t,2*DAY);if(!bp)continue;

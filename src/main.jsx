@@ -147,9 +147,11 @@ function useHistoricalReplay(auth){
  const[observations,setObservations]=useState([]),[outcomes,setOutcomes]=useState([]),[status,setStatus]=useState("idle");
  async function refresh(){if(!supabase||!auth.session?.user){setObservations([]);setOutcomes([]);setStatus("idle");return}
   setStatus("loading");
+  // PostgREST caps each response at 1000 rows; replay outcomes exceed that quickly, so read every page.
+  const pageAll=async q=>{const rows=[];for(let f=0;;f+=1000){const{data,error}=await q().range(f,f+999);if(error)return{data:null,error};rows.push(...(data||[]));if(!data||data.length<1000)break}return{data:rows,error:null}};
   const[{data:o,error:oe},{data:x,error:xe}]=await Promise.all([
-   supabase.from("historical_replay_observations").select("*").order("observed_date",{ascending:false}).limit(1000),
-   supabase.from("historical_replay_outcomes").select("*").order("matured_at",{ascending:false}).limit(1000)
+   pageAll(()=>supabase.from("historical_replay_observations").select("*").order("observed_date",{ascending:false}).order("id",{ascending:false})),
+   pageAll(()=>supabase.from("historical_replay_outcomes").select("*").order("matured_at",{ascending:false}).order("id",{ascending:false}))
   ]);
   if(oe||xe){console.error(oe||xe);setStatus("error")}else{setObservations(o||[]);setOutcomes(x||[]);setStatus("live")}
  }
