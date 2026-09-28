@@ -14,7 +14,10 @@ create table if not exists public.calibration_results (
  btc_outperformance_rate_pct numeric,q25_return_pct numeric,q75_return_pct numeric,
  confidence_state text not null check(confidence_state in('INSUFFICIENT','LOW','MODERATE','STRONGER')),
  calibration_version text not null default 'calibration-v9.3',calculated_at timestamptz not null default now(),
- unique(user_id,research_asset_id,scope,cohort_key,horizon_days,calibration_version));
+ unique nulls not distinct(user_id,research_asset_id,scope,cohort_key,horizon_days,calibration_version));
+-- Cross-asset rows have research_asset_id NULL. A plain unique treats NULLs as distinct, so every run would insert
+-- new cross-asset rows instead of updating them. This index also covers a table created from the original v9.3 SQL.
+create unique index if not exists calibration_results_nnd_uniq on public.calibration_results(user_id,research_asset_id,scope,cohort_key,horizon_days,calibration_version) nulls not distinct;
 create index if not exists calibration_results_user_asset_idx on public.calibration_results(user_id,research_asset_id,horizon_days);
 alter table public.historical_price_daily enable row level security;alter table public.calibration_results enable row level security;
 drop policy if exists "historical prices own select" on public.historical_price_daily;
