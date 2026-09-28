@@ -21,13 +21,17 @@ const schema = {
       type: "string",
       enum: ["SUPPORTIVE","MIXED","CAUTIONARY","INSUFFICIENT_EVIDENCE"]
     },
-    historical_conflicts: { type: "array", items: { type: "string" }, maxItems: 5 }
+    historical_conflicts: { type: "array", items: { type: "string" }, maxItems: 5 },
+    live_validation_read: { type: "string" },
+    live_validation_state: { type: "string", enum: ["SUPPORTIVE","MIXED","CAUTIONARY","INSUFFICIENT_EVIDENCE"] },
+    live_validation_conflicts: { type: "array", items: { type: "string" }, maxItems: 5 }
   },
   required: [
     "stance","confidence","summary","what_changed","bull_case","bear_case",
     "score_cautions","thesis_break_watch","next_evidence","quant_ai_agreement",
     "qualitative_read","source_conflicts",
-    "historical_evidence_read","historical_evidence_state","historical_conflicts"
+    "historical_evidence_read","historical_evidence_state","historical_conflicts",
+    "live_validation_read","live_validation_state","live_validation_conflicts"
   ]
 };
 
@@ -98,7 +102,12 @@ Use the 7D, 30D and 90D horizons separately; do not blend them into one expected
 Current fundamentals, qualitative evidence, token mechanics, catalysts and regime can make today's state materially different from historical analogs.
 If historical evidence and current qualitative/fundamental evidence disagree, explicitly surface the disagreement.
 INSUFFICIENT historical evidence must remain uncertainty, never positive or negative evidence.
-Historical evidence does not authorize changing deterministic Setup, Thesis, Entry or Position thresholds.`;
+Historical evidence does not authorize changing deterministic Setup, Thesis, Entry or Position thresholds.
+packet.live_validation measures what actually happened after judgments this engine really recorded (Entry/Position signals and prior AI assessments). It is separate from historical replay; do not merge the two.
+Small live samples are weak evidence. Positive rate is descriptive, never a probability.
+Keep horizons separate, and keep Entry, Position and AI cohorts separate.
+If live validation conflicts with historical or current evidence, surface the conflict explicitly.
+Live validation never authorizes auto-tuning any threshold.`;
 
     const input = `Analyze this research packet. Compare current evidence with prior evaluations and matured signal outcomes when present.\n\n${JSON.stringify(packet)}`;
 
@@ -141,7 +150,7 @@ Historical evidence does not authorize changing deterministic Setup, Thesis, Ent
     return res.status(200).json({
       assessment,
       model: MODEL,
-      model_version: "ai-research-v9.4",
+      model_version: "ai-research-v9.5",
       response_id: j.id || null,
       generated_at: new Date().toISOString()
     });
