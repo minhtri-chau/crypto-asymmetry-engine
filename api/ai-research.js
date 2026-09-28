@@ -49,12 +49,18 @@ export default async function handler(req, res) {
   try {
     const user = await verifyUser(req);
     if (!user?.id) return res.status(401).json({ error: "Unauthorized" });
+    // Sign-up is open, so "any signed-in user" is anyone. Only allow-listed accounts may spend the OpenAI key.
+    const allowed = (process.env.AI_ALLOWED_EMAILS || "").split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
+    if (!allowed.length) return res.status(403).json({ error: "AI research is disabled until AI_ALLOWED_EMAILS is configured" });
+    if (!allowed.includes(String(user.email || "").toLowerCase())) return res.status(403).json({ error: "This account is not allowed to run AI research" });
     if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: "OPENAI_API_KEY is not configured" });
 
     const packet = req.body?.packet;
     if (!packet?.asset?.symbol || !packet?.asset?.name) {
       return res.status(400).json({ error: "Missing research packet" });
     }
+    // The packet is client-supplied; cap its size so one request cannot send an arbitrarily large prompt.
+    if (JSON.stringify(packet).length > 60000) return res.status(413).json({ error: "Research packet is too large" });
 
     const instructions = `You are the AI Research Engine inside Crypto Asymmetry Engine.
 Your job is to analyze the supplied structured evidence, not to issue trading instructions.
@@ -79,6 +85,7 @@ with your evidence-based assessment.`;
       body: JSON.stringify({
         model: MODEL,
         reasoning: { effort: "medium" },
+        max_output_tokens: 8000,
         instructions,
         input,
         text: {
