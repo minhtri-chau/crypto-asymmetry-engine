@@ -9,3 +9,6 @@ verify_jwt = false
 
 [functions.signal-outcomes]
 verify_jwt = false
+
+[functions.daily-signal-capture]
+verify_jwt = false
