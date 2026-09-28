@@ -18,3 +18,6 @@ verify_jwt = false
 
 [functions.evidence-calibration]
 verify_jwt = false
+
+[functions.multi-year-history]
+verify_jwt = false
