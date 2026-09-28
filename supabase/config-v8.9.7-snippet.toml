@@ -1,0 +1,2 @@
+[functions.daily-signal-capture]
+verify_jwt = false
