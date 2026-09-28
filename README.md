@@ -818,3 +818,7 @@ v8.9.5 incorporates the useful, testable market-structure ideas from the reviewe
 - **No ATH anchoring:** historical resistance is a market-structure reference, not a valuation target or evidence that a token should return to an old high.
 - **No scoring retune:** structure, weekly confirmation, and BTC downside beta are observational in v8.9.5. They are journaled for later validation but do not change Setup Evidence, Thesis Strength, Entry Signal thresholds, or Position Signal thresholds.
 - **Freshness:** Scanner now surfaces the server refresh timestamp so stale output is easier to distinguish from current scanning data.
+
+
+## v8.9.5.1 hotfix
+Fixes the v8.9.5 Research Context parser regression caused by two missing function-closing braces. It also preserves the deployed Scanner RETEST/HOLD correction and adds explicit Research Context failure/retry UI. No scoring or database changes.

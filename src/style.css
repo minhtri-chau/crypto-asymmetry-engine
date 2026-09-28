@@ -119,3 +119,6 @@
 .discoveryRow{grid-template-columns:1fr 1fr .8fr .7fr .55fr .55fr 1.25fr 1.25fr 1.6fr 1fr;min-width:1320px}
 .structureStage{font:8px DM Mono;color:#79bfff;letter-spacing:.02em}.structurePanel{border-color:#314a43}
 @media(max-width:760px){.discoveryRow{min-width:1240px}}
+
+/* v8.9.5.1: expose Research Context failures instead of silently rendering missing evidence */
+.contextError{border-color:#6b3b3b}.contextError p{color:#c59b9b;max-width:820px}.contextError .snapshotBtn{margin-top:10px}
