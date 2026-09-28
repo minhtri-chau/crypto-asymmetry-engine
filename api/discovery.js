@@ -19,6 +19,23 @@ async function addFundamentals(rows,ps,priorityIds=new Set()){
  for(let i=0;i<targets.length;i+=10){await Promise.all(targets.slice(i,i+10).map(async({x,p})=>{if(!p.slug){x.fundamentals.feeStatus="NO_SLUG";return}x.fundamentals.feeStatus="QUERIED";const f=await safe(`https://api.llama.fi/summary/fees/${p.slug}?dataType=dailyFees`);if(f){x.fundamentals.fees7d=num(f.total7d);x.fundamentals.fees30d=num(f.total30d);x.fundamentals.fees7dChange=num(f.change_7dover7d)??chart7dOver7d(f);x.fundamentals.feeStatus=[x.fundamentals.fees7d,x.fundamentals.fees30d,x.fundamentals.fees7dChange].some(v=>v!=null)?"AVAILABLE":"NO_DATA"}else{x.fundamentals.feeStatus="FETCH_FAILED"}}))}
  return{matched:matched.length,feeEnriched:targets.length}
 }
+
+function avg(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:null}
+function ema(vals,n){if(vals.length<n)return null;const k=2/(n+1);let e=avg(vals.slice(0,n));for(let i=n;i<vals.length;i++)e=vals[i]*k+e*(1-k);return e}
+function structureFromCandles(candles,r7,r30){
+ const rows=(candles||[]).filter(x=>Array.isArray(x)&&Number.isFinite(Number(x[4]))).sort((a,b)=>a[0]-b[0]),vals=rows.map(x=>Number(x[4]));if(vals.length<205)return null;
+ const weekly=[];for(const x of rows){const d=new Date(x[0]*1000),day=(d.getUTCDay()+6)%7,w=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()-day),close=Number(x[4]);if(!weekly.length||weekly.at(-1).w!==w)weekly.push({w,close});else weekly[weekly.length-1]={w,close}}
+ const now=new Date(),todayDay=(now.getUTCDay()+6)%7,currentWeek=Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()-todayDay),closes=weekly.filter(x=>x.w<currentWeek).map(x=>x.close),prior=closes.slice(-54,-2),recent26=prior.slice(-26),resistance=recent26.length?Math.max(...recent26):null,last=vals.at(-1),e200=ema(vals,200),distance=resistance?(last/resistance-1)*100:null,consecutive=resistance?(()=>{let n=0;for(let i=closes.length-1;i>=0&&closes[i]>resistance;i--)n++;return n})():0,broke=resistance&&last>resistance,near=distance!=null&&distance>=-8&&distance<=3,extended=(r30!=null&&r30>35)||(distance!=null&&distance>22);
+ let stage="BELOW RESISTANCE";if(extended&&broke)stage="EXTENDED";else if(broke&&distance<=8&&consecutive>=2)stage="SUPPORT HELD";else if(broke&&distance<=8)stage="RETEST / HOLD";else if(broke&&consecutive>=2)stage="CONFIRMED BREAKOUT";else if(broke)stage="BREAKOUT ATTEMPT";else if(near)stage="NEAR BREAKOUT";else if(e200&&last>e200)stage="EARLY STRUCTURE";
+ return{stage,resistance,distanceResistance:distance,above200:e200?last>e200:null,weeklyConfirmation:consecutive>=2?"CONFIRMED":consecutive===1?"ONE WEEK CLOSE":"UNCONFIRMED",consecutiveWeeklyClosesAbove:consecutive}
+}
+async function addStructure(rows,priorityIds){
+ // Structure is observational and does not change setup-v3 ranking. Cap requests to protect the scanner.
+ const chosen=[],seen=new Set();for(const x of rows){if(priorityIds.has(x.id)&&!seen.has(x.id)){chosen.push(x);seen.add(x.id)}}for(const x of rows){if(chosen.length>=40)break;if(!seen.has(x.id)){chosen.push(x);seen.add(x.id)}}
+ for(let i=0;i<chosen.length;i+=8){await Promise.all(chosen.slice(i,i+8).map(async x=>{const usd=`${x.symbol}-USD`,usdc=`${x.symbol}-USDC`;let c=await safe(`https://api.exchange.coinbase.com/products/${encodeURIComponent(usd)}/candles?granularity=86400`);if(!Array.isArray(c)||!c.length)c=await safe(`https://api.exchange.coinbase.com/products/${encodeURIComponent(usdc)}/candles?granularity=86400`);x.structure=structureFromCandles(c,x.return7d,x.return30d)}))}
+ return{observed:chosen.filter(x=>x.structure).length,requested:chosen.length,cap:40}
+}
+
 function extensionPenalty(r7,r30){const p7=r7>60?30:r7>40?23:r7>25?14:r7>15?5:0,p30=r30>150?40:r30>100?32:r30>70?24:r30>45?15:r30>30?8:0;return Math.max(p7,p30)}
 function scoreParts(x){
  const vol=x.volumeToMarketCap||0,r7=x.return7d||0,r30=x.return30d||0,d=x.dilution;
@@ -57,10 +74,11 @@ export default async function handler(req,res){try{
  const enrichment=await addFundamentals(rows,await safe("https://api.llama.fi/protocols")||[],priorityIds);
  rows.forEach(x=>Object.assign(x,scoreParts(x)));
  const ranked=rankCandidates(rows);
+ const structureEnrichment=await addStructure(ranked,priorityIds);
  ranked.forEach(x=>{const f=x.fundamentals||{},r=[];if(f.fees7dChange!=null&&f.fees7dChange>10)r.push(`fees +${Math.round(f.fees7dChange)}% vs prior 7D`);if(f.tvl7d!=null&&f.tvl7d>5)r.push(`TVL +${Math.round(f.tvl7d)}% 7D`);if(x.return30d!=null&&x.return30d<=30&&x.return30d>=-15)r.push("price not heavily repriced");if(x.volumeToMarketCap!=null&&x.volumeToMarketCap>=.06)r.push("liquid");if(x.dilution!=null&&x.dilution<=1.5)r.push("limited FDV overhang");if(x.extensionPenalty>=15)r.push("already repriced");if(!x.hasFundamental)r.push("fundamentals not matched");else if(f.feeStatus==="NOT_QUERIED")r.push("fee history not queried");else if(f.feeStatus==="NO_DATA")r.push("fee history queried; no data");x.reasons=r.slice(0,4)});
  const candidates=ranked;
  res.setHeader("Cache-Control","s-maxage=900, stale-while-revalidate=1800");
  res.status(200).json({candidates,universe:{coinbaseSpotSymbols:cb.size,screened:best.size,eligible:rows.length,returned:candidates.length},
   setupScoringVersion:"setup-v3",methodology:"Research Priority is relative rank within today's eligible Coinbase universe. Asymmetry Evidence is an absolute 0-100 evidence score and is not guaranteed to be high. Large recent gains are penalized; identity-safe DefiLlama project-family TVL evidence is attached across the eligible universe, with fee enrichment capped at 60 calls and prioritized for followed assets plus market-quality candidates. `NOT_QUERIED` is distinct from `NO_DATA`, and an asset is not quality-penalized merely for falling outside the fee-call budget. Missing fundamentals reduce evidence coverage rather than being treated as zero.",
-  fundamentalsEnrichment:enrichment,coinGeckoDemoKey:!!process.env.COINGECKO_DEMO_API_KEY,at:new Date().toISOString()});
+  fundamentalsEnrichment:enrichment,structureEnrichment,coinGeckoDemoKey:!!process.env.COINGECKO_DEMO_API_KEY,at:new Date().toISOString()});
  }catch(e){res.status(502).json({error:"discovery feed unavailable"})}}

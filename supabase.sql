@@ -321,3 +321,10 @@ alter table public.signal_observations add column if not exists position_average
 alter table public.signal_observations add column if not exists position_cost_basis numeric;
 alter table public.signal_observations add column if not exists position_unrealized_pnl numeric;
 alter table public.signal_observations add column if not exists position_unrealized_pnl_pct numeric;
+
+
+-- v8.9.5 structural timing intelligence
+
+alter table public.signal_observations add column if not exists structure_stage text;
+alter table public.signal_observations add column if not exists weekly_breakout_confirmation text;
+alter table public.signal_observations add column if not exists btc_downside_beta numeric;

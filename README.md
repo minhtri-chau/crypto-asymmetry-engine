@@ -805,3 +805,16 @@ v8.9 expands what the engine observes without silently retuning the Entry/Positi
 - Purchase history is private under Supabase RLS.
 - Signal Journal observations now also record token amount, average cost, total cost basis and unrealized P/L context, so later post-buy outcome analysis can distinguish market evidence from the economics of your actual position.
 - v8.9.4 tracks buys and unrealized P/L. Sales and realized P/L remain a future extension rather than being approximated.
+
+
+## v8.9.5 structural timing intelligence
+
+v8.9.5 incorporates the useful, testable market-structure ideas from the reviewed altcoin-selection framework without turning chart patterns into automatic trade instructions.
+
+- **Structural Market State:** Research derives a reproducible stage from prior weekly-close resistance and the 200-day EMA: below resistance, early structure, near breakout, breakout attempt, confirmed breakout, retest/hold, support held, or extended.
+- **Weekly breakout confirmation:** confirmation uses completed weekly closes only. One close and two-or-more consecutive closes are distinguished explicitly.
+- **Scanner Structure Stage:** high-priority Scanner candidates receive Coinbase daily-candle enrichment, capped at 40 assets per refresh. Assets outside the enrichment budget say `NOT ENRICHED` rather than pretending structure is known.
+- **BTC downside sensitivity:** Research estimates historical downside beta from non-overlapping 7-day windows where BTC fell at least 5%, plus average asset/BTC returns during those observed drawdowns.
+- **No ATH anchoring:** historical resistance is a market-structure reference, not a valuation target or evidence that a token should return to an old high.
+- **No scoring retune:** structure, weekly confirmation, and BTC downside beta are observational in v8.9.5. They are journaled for later validation but do not change Setup Evidence, Thesis Strength, Entry Signal thresholds, or Position Signal thresholds.
+- **Freshness:** Scanner now surfaces the server refresh timestamp so stale output is easier to distinguish from current scanning data.
