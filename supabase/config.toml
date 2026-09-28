@@ -12,3 +12,6 @@ verify_jwt = false
 
 [functions.daily-signal-capture]
 verify_jwt = false
+
+[functions.historical-replay]
+verify_jwt = false
