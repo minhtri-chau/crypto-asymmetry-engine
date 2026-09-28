@@ -366,7 +366,7 @@ function ResearchDetail({a,research,discovery,market,marketStatus,regime,auth,le
     asset:{symbol:a.symbol,name:a.name,coingecko_id:a.coingecko_id},
     quant:{thesis_strength:a.thesis_strength??null,thesis_coverage:a.thesis_coverage??null,current_setup:liveSetup?.evidenceScore??null,setup_coverage:liveSetup?.evidenceCoverage??null,price:pa?.price??market?.current_price??latest?.price??null,tvl:latest?.tvl??null,fees_30d:latest?.fees_30d??null,structure:intel?.structure?.stage??null}
    })});
-   const j=await r.json();if(!r.ok)throw new Error(j?.detail||j?.error||`Qualitative Research ${r.status}`);
+   const raw=await r.text();let j=null;try{j=raw?JSON.parse(raw):null}catch{}if(!r.ok){const msg=j?.detail||j?.error||(r.status===504?"Sourced research timed out. Try again.":`Qualitative Research ${r.status}${raw?`: ${raw.slice(0,180)}`:""}`);throw new Error(msg)}if(!j)throw new Error("Sourced research returned an unexpected non-JSON response.");
    const x=j.intelligence,row={user_id:auth.session.user.id,research_asset_id:a.id,model:j.model,model_version:j.model_version,catalyst_state:x.catalyst_state,value_capture_state:x.value_capture_state,dilution_state:x.dilution_state,risk_state:x.risk_state,summary:x.summary,intelligence:x,response_id:j.response_id};
    const{error}=await supabase.from("qualitative_research").insert(row);if(error)throw error;
    await qual.refresh();
