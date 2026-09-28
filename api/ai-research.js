@@ -70,7 +70,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing research packet" });
     }
     // The packet is client-supplied; cap its size so one request cannot send an arbitrarily large prompt.
-    if (JSON.stringify(packet).length > 60000) return res.status(413).json({ error: "Research packet is too large" });
+    // v9.4 adds ~20k characters of calibration evidence; a fully researched asset is ~60k, so allow 100k.
+    if (JSON.stringify(packet).length > 100000) return res.status(413).json({ error: "Research packet is too large" });
 
     const instructions = `You are the AI Research Engine inside Crypto Asymmetry Engine.
 Your job is to analyze the supplied structured evidence, not to issue trading instructions.
