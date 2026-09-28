@@ -15,12 +15,19 @@ const schema = {
     next_evidence: { type: "array", items: { type: "string" }, maxItems: 5 },
     quant_ai_agreement: { type: "string", enum: ["AGREES","PARTIAL","DISAGREES","NOT_ENOUGH_DATA"] },
     qualitative_read: { type: "string" },
-    source_conflicts: { type: "array", items: { type: "string" }, maxItems: 5 }
+    source_conflicts: { type: "array", items: { type: "string" }, maxItems: 5 },
+    historical_evidence_read: { type: "string" },
+    historical_evidence_state: {
+      type: "string",
+      enum: ["SUPPORTIVE","MIXED","CAUTIONARY","INSUFFICIENT_EVIDENCE"]
+    },
+    historical_conflicts: { type: "array", items: { type: "string" }, maxItems: 5 }
   },
   required: [
     "stance","confidence","summary","what_changed","bull_case","bear_case",
     "score_cautions","thesis_break_watch","next_evidence","quant_ai_agreement",
-    "qualitative_read","source_conflicts"
+    "qualitative_read","source_conflicts",
+    "historical_evidence_read","historical_evidence_state","historical_conflicts"
   ]
 };
 
@@ -78,7 +85,19 @@ Return concise research language. No BUY/SELL commands and no price targets.
 with your evidence-based assessment.
 When packet.qualitative_intelligence exists, use it as sourced evidence. Preserve uncertainty,
 distinguish protocol revenue from token-holder accrual, and flag conflicts between qualitative
-evidence and deterministic metrics. Do not treat absence of qualitative evidence as negative evidence.`;
+evidence and deterministic metrics. Do not treat absence of qualitative evidence as negative evidence.
+When packet.historical_evidence exists, treat it as empirical context, not a forecast.
+Separate asset-specific evidence from cross-asset evidence.
+A larger sample count does not make overlapping weekly observations independent.
+Never convert historical frequencies or medians into a probability that the current asset will rise or fall.
+Never claim causality from a cohort.
+Do not cherry-pick only the best historical cohort. Discuss conflicting cohorts when material.
+Confidence labels describe evidence quantity/breadth, not certainty of return.
+Use the 7D, 30D and 90D horizons separately; do not blend them into one expected return.
+Current fundamentals, qualitative evidence, token mechanics, catalysts and regime can make today's state materially different from historical analogs.
+If historical evidence and current qualitative/fundamental evidence disagree, explicitly surface the disagreement.
+INSUFFICIENT historical evidence must remain uncertainty, never positive or negative evidence.
+Historical evidence does not authorize changing deterministic Setup, Thesis, Entry or Position thresholds.`;
 
     const input = `Analyze this research packet. Compare current evidence with prior evaluations and matured signal outcomes when present.\n\n${JSON.stringify(packet)}`;
 
@@ -121,7 +140,7 @@ evidence and deterministic metrics. Do not treat absence of qualitative evidence
     return res.status(200).json({
       assessment,
       model: MODEL,
-      model_version: "ai-research-v9.1",
+      model_version: "ai-research-v9.4",
       response_id: j.id || null,
       generated_at: new Date().toISOString()
     });
