@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.historical-replay]
 verify_jwt = false
+
+[functions.evidence-calibration]
+verify_jwt = false

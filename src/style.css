@@ -128,3 +128,4 @@
 @media(max-width:760px){.validationStats{grid-template-columns:1fr}.outcomeHorizon{grid-template-columns:1fr 1fr}.validationHead{flex-direction:column}}
 .historicalReplay .historyRow{grid-template-columns:1.6fr .6fr .8fr .8fr .9fr}
 .historicalReplay .miniGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}.historicalReplay .miniGrid>div{border:1px solid #202522;padding:10px 12px}.historicalReplay .miniGrid small{display:block;font:9px DM Mono;color:#65706b;letter-spacing:.12em}.historicalReplay .miniGrid b{font:600 20px DM Mono}.historicalReplay .historyTable{border:1px solid #202522}.historicalReplay .historyRow{display:grid;gap:8px;padding:9px 12px;border-top:1px solid #1c211f;font-size:12px;align-items:center}.historicalReplay .historyRow.head{border-top:0;font:9px DM Mono;color:#65706b;text-transform:uppercase;letter-spacing:.08em}
+.calibrationPanel .historyRow{grid-template-columns:1.6fr 1fr 1fr 1.1fr}
