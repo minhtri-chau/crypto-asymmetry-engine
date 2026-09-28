@@ -159,8 +159,10 @@ function useHistoricalReplay(auth){
  return{observations,outcomes,status,refresh}
 }
 function HistoricalReplayPanel({asset,replay}){
- const obs=(replay?.observations||[]).filter(x=>x.research_asset_id===asset.id);
- const outs=(replay?.outcomes||[]).filter(x=>x.research_asset_id===asset.id);
+ // v9.3.1: use only the asset's newest replay version (multi-year if present) so the same dates are not counted twice.
+ const allObs=(replay?.observations||[]).filter(x=>x.research_asset_id===asset.id),multi=allObs.some(x=>x.replay_version==="replay-v9.3.1-multiyear");
+ const obs=allObs.filter(x=>(x.replay_version==="replay-v9.3.1-multiyear")===multi),obsIds=new Set(obs.map(x=>x.id));
+ const outs=(replay?.outcomes||[]).filter(x=>x.research_asset_id===asset.id&&obsIds.has(x.replay_observation_id));
  const med=a=>{const x=a.filter(Number.isFinite).sort((a,b)=>a-b);return x.length?x[Math.floor(x.length/2)]:null};
  const cohorts=[
   ["Above 50D + 200D",x=>x.trend_state==="ABOVE_50_200"],
@@ -175,7 +177,7 @@ function HistoricalReplayPanel({asset,replay}){
  return <section className="panel historicalReplay"><h3><Database size={17}/> Historical Replay · v9.2</h3>
   <p className="sourceNote">Leakage-safe quantitative replay from point-in-time price and BTC history. It does not backfill historical Thesis, Setup, fundamentals, qualitative evidence, regime or AI judgments.</p>
   {replay?.status==="error"?<p className="err">Replay data unavailable.</p>:!obs.length?<p>No replay observations stored yet. Run the historical-replay worker after deploying v9.2.</p>:<>
-   <div className="miniGrid"><div><small>REPLAY OBSERVATIONS</small><b>{obs.length}</b></div><div><small>FORWARD OUTCOMES</small><b>{outs.length}</b></div></div>
+   <div className="miniGrid"><div><small>REPLAY OBSERVATIONS</small><b>{obs.length}</b></div><div><small>FORWARD OUTCOMES</small><b>{outs.length}</b></div></div><p className="sourceNote">{multi?"Multi-year Coinbase history":"CoinGecko 365-day history"}{obs.length?` · ${obs[obs.length-1].observed_date} → ${obs[0].observed_date}`:""}</p>
    <div className="historyTable"><div className="historyRow head"><span>30D cohort</span><span>Samples</span><span>Median return</span><span>vs BTC</span><span>Median max DD</span></div>
    {rows.map(r=><div className="historyRow" key={r.label}><span>{r.label}</span><span>{r.n}</span><span>{r.ret==null?"—":pct(r.ret)}</span><span>{r.rel==null?"—":pct(r.rel)}</span><span>{r.dd==null?"—":pct(r.dd)}</span></div>)}</div>
    <p className="sourceNote">Small samples are descriptive, not probabilities. v9.2 does not tune thresholds automatically.</p>
