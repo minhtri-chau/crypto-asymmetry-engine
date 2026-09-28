@@ -21,3 +21,6 @@ verify_jwt = false
 
 [functions.multi-year-history]
 verify_jwt = false
+
+[functions.research-history-onboard]
+verify_jwt = false

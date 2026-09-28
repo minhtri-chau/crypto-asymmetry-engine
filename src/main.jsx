@@ -112,6 +112,18 @@ return{d,status,updated,refresh}}
 function useTrends(){const[d,setD]=useState({}),[status,setStatus]=useState("loading");async function refresh(){setStatus("loading");try{let r=await fetch(`/api/trends?ids=${A.map(a=>a.id).join(",")}`);if(!r.ok)throw 0;setD(await r.json());setStatus("live")}catch{setD({});setStatus("error")}}useEffect(()=>{refresh();let t=setInterval(refresh,900000);return()=>clearInterval(t)},[]);return{d,status,refresh}}
 function useDiscovery(priorityIds=[]){const[d,setD]=useState({candidates:[],universe:{}}),[status,setStatus]=useState("loading"),key=[...priorityIds].sort().join(",");async function refresh(){setStatus("loading");try{const r=await fetch(`/api/discovery${key?`?priority=${encodeURIComponent(key)}`:""}`);if(!r.ok)throw 0;setD(await r.json());setStatus("live")}catch{setD({candidates:[],universe:{}});setStatus("error")}}useEffect(()=>{refresh();let t=setInterval(refresh,900000);return()=>clearInterval(t)},[key]);return{d,status,refresh}}
 
+async function onboardResearchHistory(researchAssetId){
+  try{
+    const {data:{session}}=await supabase.auth.getSession();
+    // Do not expose MONITOR_CRON_SECRET in the browser.
+    // Browser calls a server-side Vercel proxy described below instead.
+    await fetch("/api/history-onboard",{
+      method:"POST",
+      headers:{"Content-Type":"application/json",Authorization:`Bearer ${session?.access_token||""}`},
+      body:JSON.stringify({research_asset_id:researchAssetId})
+    });
+  }catch(e){console.warn("history onboarding deferred",e)}
+}
 function useResearchPipeline(auth){
  const[d,setD]=useState([]),[evals,setEvals]=useState([]),[status,setStatus]=useState("idle");
  async function refresh(){if(!supabase||!auth.session?.user){setD([]);setEvals([]);setStatus("idle");return}setStatus("loading");const[{data:a,error:ae},{data:e,error:ee}]=await Promise.all([supabase.from("research_assets").select("*").order("updated_at",{ascending:false}),supabase.from("research_evaluations").select("*").order("evaluated_at",{ascending:false}).limit(500)]);if(ae||ee){console.error(ae||ee);setStatus("error")}else{setD(a||[]);setEvals(e||[]);setStatus("live")}}
@@ -122,7 +134,7 @@ function useResearchPipeline(auth){
   const{error}=await supabase.from("research_assets").upsert(rows,{onConflict:"user_id,coingecko_id",ignoreDuplicates:true});
   if(!error&&!cancelled){localStorage.setItem(marker,"1");await refresh()}else if(error)console.error(error)
  })();return()=>{cancelled=true}},[auth.session?.user?.id]);
- async function promote(x){if(!supabase||!auth.session?.user)return false;const uid=auth.session.user.id,{data:a,error}=await supabase.from("research_assets").upsert({user_id:uid,symbol:x.symbol,coingecko_id:x.id,name:x.name,stage:"research",research_origin:"discovery",updated_at:new Date().toISOString()},{onConflict:"user_id,coingecko_id"}).select().single();if(error){console.error(error);return false}await refresh();return true}
+ async function promote(x){if(!supabase||!auth.session?.user)return false;const uid=auth.session.user.id,{data:a,error}=await supabase.from("research_assets").upsert({user_id:uid,symbol:x.symbol,coingecko_id:x.id,name:x.name,stage:"research",research_origin:"discovery",updated_at:new Date().toISOString()},{onConflict:"user_id,coingecko_id"}).select().single();if(error){console.error(error);return false}if(a?.id)onboardResearchHistory(a.id);await refresh();return true}
  async function patch(id,v){if(!supabase)return;const{error}=await supabase.from("research_assets").update({...v,updated_at:new Date().toISOString()}).eq("id",id);if(error)console.error(error);await refresh()}
  return{d,evals,status,refresh,promote,patch}
 }
@@ -174,13 +186,13 @@ function HistoricalReplayPanel({asset,replay}){
   const ids=new Set(obs.filter(test).map(x=>x.id)),o=outs.filter(x=>ids.has(x.replay_observation_id)&&x.horizon_days===30);
   return{label,n:o.length,ret:med(o.map(x=>Number(x.asset_return_pct))),rel:med(o.map(x=>Number(x.btc_relative_return_pct))),dd:med(o.map(x=>Number(x.max_drawdown_pct)))}
  });
- return <section className="panel historicalReplay"><h3><Database size={17}/> Historical Replay · v9.2</h3>
+ return <section className="panel historicalReplay"><h3><Database size={17}/> Historical Replay · v9.3.2</h3>
   <p className="sourceNote">Leakage-safe quantitative replay from point-in-time price and BTC history. It does not backfill historical Thesis, Setup, fundamentals, qualitative evidence, regime or AI judgments.</p>
   {replay?.status==="error"?<p className="err">Replay data unavailable.</p>:!obs.length?<p>No replay observations stored yet. Run the historical-replay worker after deploying v9.2.</p>:<>
    <div className="miniGrid"><div><small>REPLAY OBSERVATIONS</small><b>{obs.length}</b></div><div><small>FORWARD OUTCOMES</small><b>{outs.length}</b></div></div><p className="sourceNote">{multi?"Multi-year Coinbase history":"CoinGecko 365-day history"}{obs.length?` · ${obs[obs.length-1].observed_date} → ${obs[0].observed_date}`:""}</p>
    <div className="historyTable"><div className="historyRow head"><span>30D cohort</span><span>Samples</span><span>Median return</span><span>vs BTC</span><span>Median max DD</span></div>
    {rows.map(r=><div className="historyRow" key={r.label}><span>{r.label}</span><span>{r.n}</span><span>{r.ret==null?"—":pct(r.ret)}</span><span>{r.rel==null?"—":pct(r.rel)}</span><span>{r.dd==null?"—":pct(r.dd)}</span></div>)}</div>
-   <p className="sourceNote">Small samples are descriptive, not probabilities. v9.2 does not tune thresholds automatically.</p>
+   <p className="sourceNote">Historical samples are descriptive, not probabilities. Evidence Calibration does not change production thresholds automatically.</p>
   </>}
  </section>
 }
