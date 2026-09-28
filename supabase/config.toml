@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.research-monitor]
 verify_jwt = false
+
+[functions.signal-outcomes]
+verify_jwt = false

@@ -822,3 +822,21 @@ v8.9.5 incorporates the useful, testable market-structure ideas from the reviewe
 
 ## v8.9.5.1 hotfix
 Fixes the v8.9.5 Research Context parser regression caused by two missing function-closing braces. It also preserves the deployed Scanner RETEST/HOLD correction and adds explicit Research Context failure/retry UI. No scoring or database changes.
+
+
+## v8.9.6 Signal Outcome Engine
+
+The dashboard now closes the research loop by measuring forward outcomes from recorded Signal Journal observations.
+
+- 7D / 30D / 90D forward asset returns
+- BTC-relative returns
+- maximum favorable excursion
+- maximum adverse excursion
+- maximum peak-to-trough drawdown
+- sample counts and signal-label aggregation
+- dedicated **Validation** page
+- per-asset Forward Signal Outcomes panel on Research detail
+- daily Supabase worker with historical backfill of matured journal observations
+- explicit `outcome-v1` provenance
+
+Outcome data is evidence for later rule validation. It does not automatically change setup-v3 or any decision threshold.
