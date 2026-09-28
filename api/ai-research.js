@@ -13,11 +13,14 @@ const schema = {
     score_cautions: { type: "array", items: { type: "string" }, maxItems: 5 },
     thesis_break_watch: { type: "array", items: { type: "string" }, maxItems: 5 },
     next_evidence: { type: "array", items: { type: "string" }, maxItems: 5 },
-    quant_ai_agreement: { type: "string", enum: ["AGREES","PARTIAL","DISAGREES","NOT_ENOUGH_DATA"] }
+    quant_ai_agreement: { type: "string", enum: ["AGREES","PARTIAL","DISAGREES","NOT_ENOUGH_DATA"] },
+    qualitative_read: { type: "string" },
+    source_conflicts: { type: "array", items: { type: "string" }, maxItems: 5 }
   },
   required: [
     "stance","confidence","summary","what_changed","bull_case","bear_case",
-    "score_cautions","thesis_break_watch","next_evidence","quant_ai_agreement"
+    "score_cautions","thesis_break_watch","next_evidence","quant_ai_agreement",
+    "qualitative_read","source_conflicts"
   ]
 };
 
@@ -72,7 +75,10 @@ dilution/value-capture problems, regime dependence, and disagreement between cur
 Historical outcomes are descriptive samples, not guaranteed probabilities.
 Return concise research language. No BUY/SELL commands and no price targets.
 "quant_ai_agreement" means whether the supplied deterministic thesis/setup/decision signal is directionally consistent
-with your evidence-based assessment.`;
+with your evidence-based assessment.
+When packet.qualitative_intelligence exists, use it as sourced evidence. Preserve uncertainty,
+distinguish protocol revenue from token-holder accrual, and flag conflicts between qualitative
+evidence and deterministic metrics. Do not treat absence of qualitative evidence as negative evidence.`;
 
     const input = `Analyze this research packet. Compare current evidence with prior evaluations and matured signal outcomes when present.\n\n${JSON.stringify(packet)}`;
 
@@ -110,7 +116,7 @@ with your evidence-based assessment.`;
     return res.status(200).json({
       assessment,
       model: MODEL,
-      model_version: "ai-research-v9.0",
+      model_version: "ai-research-v9.1",
       response_id: j.id || null,
       generated_at: new Date().toISOString()
     });
