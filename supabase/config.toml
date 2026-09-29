@@ -39,3 +39,6 @@ verify_jwt = false
 
 [functions.decision-scorecard]
 verify_jwt = false
+
+[functions.calibration-lab]
+verify_jwt = false
