@@ -33,3 +33,9 @@ verify_jwt = false
 
 [functions.similarity-engine]
 verify_jwt = false
+
+[functions.decision-outcomes]
+verify_jwt = false
+
+[functions.decision-scorecard]
+verify_jwt = false
