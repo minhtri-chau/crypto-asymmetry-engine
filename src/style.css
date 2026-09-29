@@ -131,3 +131,4 @@
 .calibrationPanel .historyRow{grid-template-columns:1.6fr 1fr 1fr 1.1fr}
 .decisionHorizons{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:14px}.decisionHorizon{border:1px solid #203029;padding:12px}.decisionHorizon>b{font-size:15px}.decisionHero p{margin:8px 0 0}
 .scorecardFilters{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}.scorecardFilters .periodTabs{width:auto}.scorecardFilters select{background:#0b100e;color:#cfe;border:1px solid #28362f;font:inherit;font-size:11px;padding:6px}.validationRow.scoreRow{grid-template-columns:1.5fr 1.1fr .5fr .7fr 1.2fr .7fr .6fr .6fr .7fr .7fr .7fr .9fr;min-width:1100px}.decisionScorecard{overflow-x:auto}
+.labCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin:12px 0}.labCard{border:1px solid #203029;padding:12px}.historyRow.labRow{grid-template-columns:1fr .9fr .6fr .9fr .8fr .7fr}
