@@ -42,3 +42,6 @@ verify_jwt = false
 
 [functions.calibration-lab]
 verify_jwt = false
+
+[functions.price-expectation]
+verify_jwt = false
