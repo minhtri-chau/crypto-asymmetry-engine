@@ -840,3 +840,7 @@ The dashboard now closes the research loop by measuring forward outcomes from re
 - explicit `outcome-v1` provenance
 
 Outcome data is evidence for later rule validation. It does not automatically change setup-v3 or any decision threshold.
+
+## v10.4 — Remove from Research
+
+Research contains Active Research and Watchlist. Remove replaces Archive for coins you no longer own or want to research. Removed coins disappear from the tracked list and stop background research; Scanner can add them again. Owned positions are protected, and removal always remains your decision. Historical records are preserved internally. See `releases/V10.4-DEPLOY.md`; no Supabase redeployment or migration is needed.
