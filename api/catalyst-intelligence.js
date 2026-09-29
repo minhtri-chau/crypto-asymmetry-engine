@@ -44,13 +44,18 @@ and do not choose a disputed exact value as fact. Otherwise use NONE/null.
 impact_direction describes plausible mechanical/research direction, not a price prediction. No buy/sell command, ranking, price target or return forecast.`;
 const input=`Today is ${new Date().toISOString().slice(0,10)}. Asset: ${a.name} (${a.symbol}), CoinGecko id ${a.coingecko_id}. Current supply context (orientation only): ${JSON.stringify(req.body?.supply||{})}. Existing qualitative context (not authoritative for new facts): ${JSON.stringify(req.body?.qualitative||{})}. Previously recorded events for this asset (reuse the SAME event_key when you find the same event again; change status only with sourced evidence): ${JSON.stringify((req.body?.known_events||[]).slice(0,40))}. Focus on events from the next 180 days plus recently completed events from the prior 30 days that materially change the thesis.`;
 const format={type:"json_schema",name:"catalyst_unlock_intelligence",strict:true,schema};
-const first=await callOpenAI({model:MODEL,reasoning:{effort:"medium"},max_output_tokens:8000,instructions,input,tools:[{type:"web_search"}],text:{format}});
+// max_output_tokens includes reasoning tokens; web-search runs that hit 8000 end as truncated (incomplete) JSON.
+const first=await callOpenAI({model:MODEL,reasoning:{effort:"medium"},max_output_tokens:16000,instructions,input,tools:[{type:"web_search"}],text:{format}});
 if(!first.ok||!first.j)return res.status(502).json({error:"Event intelligence failed",failure_code:"UPSTREAM_HTTP_ERROR",detail:first.j?.error?.message||`OpenAI HTTP ${first.status}`});
-let x=txt(first.j),fail=outputFailure(first.j,x),repair_used=false,repair_response_id=null;
+const original=txt(first.j)||"";let x=original,fail=outputFailure(first.j,x),repair_used=false,repair_response_id=null,repair_sources_dropped=0;
 if(fail){// One repair of serialization/shape only: same schema, NO web_search, no new facts.
  const rep=await callOpenAI({model:MODEL,reasoning:{effort:"low"},max_output_tokens:8000,instructions:REPAIR,input:`Malformed first output (${fail.code}):\n${String(x||"").slice(0,60000)}`,text:{format}});
  if(!rep.ok||!rep.j)return res.status(502).json({error:"Structured output could not be recovered",failure_code:"REPAIR_HTTP_ERROR",detail:rep.j?.error?.message||`OpenAI HTTP ${rep.status}`,original_failure:fail});
  const rx=txt(rep.j),rf=outputFailure(rep.j,rx);if(rf)return res.status(502).json({error:"Structured output could not be recovered",failure_code:"REPAIR_FAILED",detail:rf.detail,original_failure:fail});
  x=rx;repair_used=true;repair_response_id=rep.j.id||null}
-const intelligence=clean(JSON.parse(x));
-return res.status(200).json({intelligence,model:MODEL,model_version:"event-intel-v10.1",response_id:first.j.id||null,repair_used,repair_response_id,ingestion_diagnostics:{repair_used,dropped_events:intelligence.dropped_events||0},generated_at:new Date().toISOString()})}catch(e){return res.status(500).json({error:e?.message||"Event intelligence failed",failure_code:"SERVER_ERROR"})}}
+let parsed=JSON.parse(x);
+// A truncated first output may have lost its sources; the repair model must not supply new ones. Keep only source
+// URLs that appear verbatim in the original first output; clean() then drops events left without a source.
+if(repair_used){const kept=(parsed.sources||[]).filter(s=>s?.url&&original.includes(String(s.url)));repair_sources_dropped=(parsed.sources||[]).length-kept.length;parsed={...parsed,sources:kept}}
+const intelligence=clean(parsed);
+return res.status(200).json({intelligence,model:MODEL,model_version:"event-intel-v10.1",response_id:first.j.id||null,repair_used,repair_response_id,ingestion_diagnostics:{repair_used,dropped_events:intelligence.dropped_events||0,repair_sources_dropped},generated_at:new Date().toISOString()})}catch(e){return res.status(500).json({error:e?.message||"Event intelligence failed",failure_code:"SERVER_ERROR"})}}
