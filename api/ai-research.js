@@ -113,7 +113,10 @@ Hard predefined risk/profit rules and deterministic coverage gates have preceden
 Do not issue an order, position size, price target, or probability of profit.
 If you disagree with the posture, explain the evidence conflict and what observation would resolve it.
 Historical q25/median/q75 values are scenario references, not forecasts.
-Never average asset-specific and cross-asset cohorts into a fake precision estimate.`;
+Never average asset-specific and cross-asset cohorts into a fake precision estimate.
+When packet.similarity_evidence exists, treat it as separate empirical context built only from point-in-time price/BTC replay features; it does not match historical fundamentals, catalysts, regime, qualitative evidence or AI state.
+Similarity q25/median/q75 are historical neighbor outcomes, not forecast intervals. Walk-forward directional agreement is a diagnostic, not a probability.
+Give similarity less weight when n is small, median distance is large, or walk-forward validation is weak. Never average similarity with cohort or live evidence; surface conflicts between them.`;
 
     const input = `Analyze this research packet. Compare current evidence with prior evaluations and matured signal outcomes when present.\n\n${JSON.stringify(packet)}`;
 
@@ -156,7 +159,7 @@ Never average asset-specific and cross-asset cohorts into a fake precision estim
     return res.status(200).json({
       assessment,
       model: MODEL,
-      model_version: "ai-research-v9.6",
+      model_version: "ai-research-v9.7",
       response_id: j.id || null,
       generated_at: new Date().toISOString()
     });

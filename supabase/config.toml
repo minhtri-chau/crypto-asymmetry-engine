@@ -30,3 +30,6 @@ verify_jwt = false
 
 [functions.decision-expectation]
 verify_jwt = false
+
+[functions.similarity-engine]
+verify_jwt = false
