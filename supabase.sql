@@ -745,3 +745,14 @@ alter table public.catalyst_event_runs enable row level security;
 drop policy if exists "catalyst_event_runs_select_own" on public.catalyst_event_runs;
 create policy "catalyst_event_runs_select_own" on public.catalyst_event_runs for select using(auth.uid()=user_id);
 revoke all on public.catalyst_event_runs from anon,authenticated; grant select on public.catalyst_event_runs to authenticated;
+
+-- The Research page saves each refresh from the browser (same pattern as qualitative_research), so signed-in users
+-- need insert/update on their OWN rows; select-only made every save fail with "permission denied".
+drop policy if exists "catalyst_events_insert_own" on public.catalyst_events;
+create policy "catalyst_events_insert_own" on public.catalyst_events for insert with check(auth.uid()=user_id);
+drop policy if exists "catalyst_events_update_own" on public.catalyst_events;
+create policy "catalyst_events_update_own" on public.catalyst_events for update using(auth.uid()=user_id) with check(auth.uid()=user_id);
+grant select,insert,update on public.catalyst_events to authenticated;
+drop policy if exists "catalyst_event_runs_insert_own" on public.catalyst_event_runs;
+create policy "catalyst_event_runs_insert_own" on public.catalyst_event_runs for insert with check(auth.uid()=user_id);
+grant select,insert on public.catalyst_event_runs to authenticated;
