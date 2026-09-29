@@ -668,3 +668,10 @@ alter table public.decision_scorecard_results enable row level security;
 drop policy if exists "decision_scorecard_select_own" on public.decision_scorecard_results;
 create policy "decision_scorecard_select_own" on public.decision_scorecard_results for select using(auth.uid()=user_id);
 revoke all on public.decision_scorecard_results from anon,authenticated;grant select on public.decision_scorecard_results to authenticated;
+
+-- The coalesce() expression index above cannot satisfy PostgREST's ON CONFLICT(column list), so every scorecard
+-- upsert failed. Replace it with a NULLS NOT DISTINCT index on the plain columns (cross-asset rows have NULL asset id).
+drop index if exists public.decision_scorecard_unique;
+create unique index if not exists decision_scorecard_nnd_uniq on public.decision_scorecard_results(user_id,scope,research_asset_id,mode,posture,horizon_days,scorecard_version) nulls not distinct;
+-- Daily decisions overlap heavily (consecutive 30D windows share 29 days); confidence uses non-overlapping samples.
+alter table public.decision_scorecard_results add column if not exists independent_count integer;
