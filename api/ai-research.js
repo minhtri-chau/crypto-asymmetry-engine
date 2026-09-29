@@ -116,7 +116,10 @@ Historical q25/median/q75 values are scenario references, not forecasts.
 Never average asset-specific and cross-asset cohorts into a fake precision estimate.
 When packet.similarity_evidence exists, treat it as separate empirical context built only from point-in-time price/BTC replay features; it does not match historical fundamentals, catalysts, regime, qualitative evidence or AI state.
 Similarity q25/median/q75 are historical neighbor outcomes, not forecast intervals. Walk-forward directional agreement is a diagnostic, not a probability.
-Give similarity less weight when n is small, median distance is large, or walk-forward validation is weak. Never average similarity with cohort or live evidence; surface conflicts between them.`;
+Give similarity less weight when n is small, median distance is large, or walk-forward validation is weak. Never average similarity with cohort or live evidence; surface conflicts between them.
+When packet.event_intelligence exists, treat it as sourced current evidence, not a deterministic score. Exact unlock dates and sizes require source support; UNKNOWN stays unknown.
+Distinguish one-time unlocks from continuous emissions/inflation, and protocol catalysts from token-holder value capture. A catalyst does not imply a positive price impact; an unlock is not automatically bearish: discuss magnitude, circulating-supply context, recipients/vesting where sourced, liquidity and the current thesis.
+Source quality and freshness (CURRENT/AGING/STALE) affect confidence. Surface material conflicts with the current thesis or decision. Event intelligence never changes hard stop/profit rules or deterministic thresholds.`;
 
     const input = `Analyze this research packet. Compare current evidence with prior evaluations and matured signal outcomes when present.\n\n${JSON.stringify(packet)}`;
 
@@ -159,7 +162,7 @@ Give similarity less weight when n is small, median distance is large, or walk-f
     return res.status(200).json({
       assessment,
       model: MODEL,
-      model_version: "ai-research-v9.7",
+      model_version: "ai-research-v10",
       response_id: j.id || null,
       generated_at: new Date().toISOString()
     });
