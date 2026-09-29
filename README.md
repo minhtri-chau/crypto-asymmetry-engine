@@ -844,3 +844,7 @@ Outcome data is evidence for later rule validation. It does not automatically ch
 ## v10.4 — Remove from Research
 
 Research contains Active Research and Watchlist. Remove replaces Archive for coins you no longer own or want to research. Removed coins disappear from the tracked list and stop background research; Scanner can add them again. Owned positions are protected, and removal always remains your decision. Historical records are preserved internally. See `releases/V10.4-DEPLOY.md`; no Supabase redeployment or migration is needed.
+
+## v10.5 — Chart price measurements
+
+Click and drag between two points on a Research coin's price chart to measure percentage and dollar change, dates and elapsed days. Release keeps the measurement visible. Click, Clear or Escape dismisses it. Range changes reset it. Uses existing daily history; no additional API requests or Supabase deployment changes.
