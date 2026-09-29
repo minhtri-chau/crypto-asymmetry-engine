@@ -45,3 +45,6 @@ verify_jwt = false
 
 [functions.price-expectation]
 verify_jwt = false
+
+[functions.price-expectation-validation]
+verify_jwt = false
