@@ -107,7 +107,13 @@ packet.live_validation measures what actually happened after judgments this engi
 Small live samples are weak evidence. Positive rate is descriptive, never a probability.
 Keep horizons separate, and keep Entry, Position and AI cohorts separate.
 If live validation conflicts with historical or current evidence, surface the conflict explicitly.
-Live validation never authorizes auto-tuning any threshold.`;
+Live validation never authorizes auto-tuning any threshold.
+When packet.decision_context exists, critique the current practical posture against deterministic, qualitative, historical and live-validation evidence.
+Hard predefined risk/profit rules and deterministic coverage gates have precedence over AI interpretation.
+Do not issue an order, position size, price target, or probability of profit.
+If you disagree with the posture, explain the evidence conflict and what observation would resolve it.
+Historical q25/median/q75 values are scenario references, not forecasts.
+Never average asset-specific and cross-asset cohorts into a fake precision estimate.`;
 
     const input = `Analyze this research packet. Compare current evidence with prior evaluations and matured signal outcomes when present.\n\n${JSON.stringify(packet)}`;
 
@@ -150,7 +156,7 @@ Live validation never authorizes auto-tuning any threshold.`;
     return res.status(200).json({
       assessment,
       model: MODEL,
-      model_version: "ai-research-v9.5",
+      model_version: "ai-research-v9.6",
       response_id: j.id || null,
       generated_at: new Date().toISOString()
     });

@@ -27,3 +27,6 @@ verify_jwt = false
 
 [functions.ai-assessment-outcomes]
 verify_jwt = false
+
+[functions.decision-expectation]
+verify_jwt = false
