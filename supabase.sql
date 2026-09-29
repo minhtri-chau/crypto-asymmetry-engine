@@ -756,3 +756,13 @@ grant select,insert,update on public.catalyst_events to authenticated;
 drop policy if exists "catalyst_event_runs_insert_own" on public.catalyst_event_runs;
 create policy "catalyst_event_runs_insert_own" on public.catalyst_event_runs for insert with check(auth.uid()=user_id);
 grant select,insert on public.catalyst_event_runs to authenticated;
+
+
+-- v10.1 Event Intelligence Reliability
+alter table public.catalyst_events
+ add column if not exists conflict_state text not null default 'NONE'
+ check (conflict_state in ('NONE','CONFLICTED')),
+ add column if not exists conflict_note text;
+alter table public.catalyst_event_runs
+ add column if not exists repair_used boolean not null default false,
+ add column if not exists ingestion_diagnostics jsonb not null default '{}'::jsonb;
