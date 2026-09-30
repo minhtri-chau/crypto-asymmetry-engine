@@ -48,20 +48,27 @@ function state(s:any,owned:boolean,prev:any){
  return{status:"monitor",reason:"No hard current-setup deterioration signal; continue monitoring the setup and thesis separately."}
 }
 Deno.serve(async req=>{
- if(req.method!=="POST")return new Response("Method not allowed",{status:405});
+ if(!["POST","GET"].includes(req.method))return new Response("Method not allowed",{status:405});
  const expected=Deno.env.get("MONITOR_CRON_SECRET");if(!expected||req.headers.get("x-monitor-secret")!==expected)return new Response("Unauthorized",{status:401});
+ if(req.method==="GET")return Response.json({targeted_research_version:"v10.6"});
  const url=Deno.env.get("SUPABASE_URL"),key=secretKey();if(!url||!key)return Response.json({error:"Supabase server credentials unavailable"},{status:500});
  const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
- const{data:assets,error}=await db.from("research_assets").select("*").neq("stage","archived");if(error)return Response.json({error:error.message},{status:500});if(!assets?.length)return Response.json({ok:true,evaluated:0});
+ let body:any={};try{const raw=await req.text();if(raw.trim())body=JSON.parse(raw)}catch{return Response.json({error:"Invalid JSON body"},{status:400})}
+ if(!body||typeof body!=="object"||Array.isArray(body))return Response.json({error:"Invalid request body"},{status:400});
+ const targeted=Object.prototype.hasOwnProperty.call(body,"research_asset_id");
+ if(targeted&&(!Number.isSafeInteger(body.research_asset_id)||body.research_asset_id<=0||typeof body.user_id!=="string"||!body.user_id))return Response.json({error:"Valid research_asset_id and user_id required"},{status:400});
+ let query=db.from("research_assets").select("*").neq("stage","archived");
+ if(targeted)query=query.eq("id",body.research_asset_id).eq("user_id",body.user_id);
+ const{data:assets,error}=await query;if(error)return Response.json({error:error.message},{status:500});if(!assets?.length)return Response.json({ok:!targeted,evaluated:0,error:targeted?"Research asset not found":undefined},{status:targeted?404:200});
  const ids=[...new Set(assets.map((a:any)=>a.coingecko_id))],h:Record<string,string>={accept:"application/json"},cg=Deno.env.get("COINGECKO_DEMO_API_KEY");if(cg)h["x-cg-demo-api-key"]=cg;
  const market=await fj(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids.join(",")}&sparkline=false&price_change_percentage=7d,30d`,h);if(!Array.isArray(market))return Response.json({error:"CoinGecko unavailable"},{status:502});
  const mm=new Map(market.map((x:any)=>[x.id,x])),protocols=await fj("https://api.llama.fi/protocols")||[],pm=protocolMap(protocols);let evaluated=0;
  for(const a of assets){
-  const m=mm.get(a.coingecko_id);if(!m)continue;const p=pm.x(a.coingecko_id,a.symbol);let f:any=null;
+  const m=mm.get(a.coingecko_id);if(!m){if(targeted)return Response.json({error:"Market data unavailable for this asset"},{status:502});continue;}const p=pm.x(a.coingecko_id,a.symbol);let f:any=null;
   if(p){const fees=await fj(`https://api.llama.fi/summary/fees/${p.slug}?dataType=dailyFees`);f={tvl:p.tvl,tvl7d:p.tvl7d,fees30d:num(fees?.total30d),fees7dChange:num(fees?.change_7dover7d)??chart7(fees),feeStatus:fees?"QUERIED":"FETCH_FAILED"}}
   const s=score(m,f),t=thesisScore(m,f),{data:prior}=await db.from("research_evaluations").select("evidence_score,evidence_coverage,status").eq("research_asset_id",a.id).order("evaluated_at",{ascending:false}).limit(1).maybeSingle(),st=state(s,!!a.is_owned,prior);
-  if(t.score!=null)await db.from("research_assets").update({thesis_strength:t.score,thesis_coverage:t.coverage,thesis_components:t.parts,thesis_updated_at:new Date().toISOString()}).eq("id",a.id);
-  const{error:ie}=await db.from("research_evaluations").insert({user_id:a.user_id,research_asset_id:a.id,evidence_score:s.evidence,evidence_coverage:s.coverage,scoring_version:s.scoringVersion,price:m.current_price,market_cap:m.market_cap??null,fdv:m.fully_diluted_valuation??null,volume_24h:m.total_volume??null,tvl:f?.tvl??null,fees_30d:f?.fees30d??null,return_7d:s.r7,return_30d:s.r30,fees_7d_change:f?.fees7dChange??null,tvl_7d_change:f?.tvl7d??null,dilution:s.d,status:st.status,reason:st.reason});if(!ie)evaluated++;
+  if(t.score!=null){const{error:te}=await db.from("research_assets").update({thesis_strength:t.score,thesis_coverage:t.coverage,thesis_components:t.parts,thesis_updated_at:new Date().toISOString()}).eq("id",a.id);if(te&&targeted)return Response.json({error:te.message},{status:500});}
+  const{error:ie}=await db.from("research_evaluations").insert({user_id:a.user_id,research_asset_id:a.id,evidence_score:s.evidence,evidence_coverage:s.coverage,scoring_version:s.scoringVersion,price:m.current_price,market_cap:m.market_cap??null,fdv:m.fully_diluted_valuation??null,volume_24h:m.total_volume??null,tvl:f?.tvl??null,fees_30d:f?.fees30d??null,return_7d:s.r7,return_30d:s.r30,fees_7d_change:f?.fees7dChange??null,tvl_7d_change:f?.tvl7d??null,dilution:s.d,status:st.status,reason:st.reason});if(ie&&targeted)return Response.json({error:ie.message},{status:500});if(!ie)evaluated++;
  }
  return Response.json({ok:true,evaluated,coinGeckoDemoKey:!!cg,at:new Date().toISOString()})
 });

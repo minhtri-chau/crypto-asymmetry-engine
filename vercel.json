@@ -9,6 +9,9 @@
     },
     "api/catalyst-intelligence.js": {
       "maxDuration": 300
+    },
+    "api/research-refresh.js": {
+      "maxDuration": 120
     }
   }
 }
