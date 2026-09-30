@@ -13,9 +13,9 @@ test('pipeline feeds fresh evaluation and sources into downstream steps',async()
  const result=await runResearchRefresh({evaluate:async()=>{calls.push('quant');return fresh},source:async ctx=>{assert.equal(ctx.latest.id,99);calls.push('source');return qualitative},events:async ctx=>{assert.equal(ctx.qualitative,qualitative);calls.push('events')},assess:async ctx=>{assert.equal(ctx.qualitative,qualitative);assert.equal(ctx.asset.id,23);calls.push('ai')},onUpdate:s=>updates.push(s)});
  assert.equal(result.ok,true);assert.deepEqual(calls,['quant','source','events','ai']);assert.ok(result.steps.every(s=>s.status==='Complete'));assert.equal(updates[0][0].status,'Running…');
 });
-test('pipeline retains completed stages and skips dependents on failure',async()=>{
+test('pipeline retains completed stages and continues after sourced research fails',async()=>{
  let downstream=0;const result=await runResearchRefresh({evaluate:async()=>({asset:{id:23}}),source:async()=>{throw new Error('upstream timeout')},events:async()=>downstream++,assess:async()=>downstream++,onUpdate:()=>{}});
- assert.equal(result.ok,false);assert.equal(downstream,0);assert.equal(result.steps[0].status,'Complete');assert.match(result.steps[1].status,/timeout/);assert.match(result.steps[2].status,/Skipped/);
+ assert.equal(result.ok,false);assert.equal(downstream,2);assert.equal(result.steps[0].status,'Complete');assert.match(result.steps[1].status,/timeout/);assert.equal(result.steps[2].status,'Complete');assert.equal(result.steps[3].status,'Complete');
 });
 test('API rejects unauthenticated and invalid target before any network request',async()=>{
  const run=apiHarness(()=>{throw new Error('unexpected request')});
@@ -43,3 +43,23 @@ test('scheduled empty body still evaluates the universe',async()=>{const h=worke
 test('targeted worker reports persistence failure',async()=>{const h=workerHarness({failInsert:true});assert.equal((await h.run(JSON.stringify({research_asset_id:23,user_id:'user-a'}))).status,500)});
 
 test('API will not invoke an older full-universe worker',async()=>{let n=0;const run=apiHarness(async(url,opts)=>{n++;if(n===1)return response({id:'user-a'});if(n===2)return response([{id:23}]);assert.equal(opts.method,'GET');return response({},405)});const res=await run({method:'POST',headers:{authorization:'Bearer token'},body:{research_asset_id:23}});assert.equal(res.code,503);assert.equal(n,3)});
+
+test('all stages are attempted with stored context after multiple failures',async()=>{
+ const initialContext={asset:{id:23},latest:{id:10},qualitative:{summary:'stored',observed_at:'2026-09-01'}},calls=[];
+ const result=await runResearchRefresh({initialContext,evaluate:async()=>{calls.push('quant');throw new Error('market unavailable')},source:async ctx=>{assert.equal(ctx.latest.id,10);calls.push('source');throw new Error('AI unavailable')},events:async ctx=>{assert.equal(ctx.qualitative.summary,'stored');calls.push('events');throw new Error('events failed')},assess:async ctx=>{assert.equal(ctx.asset.id,23);assert.equal(ctx.qualitative.observed_at,'2026-09-01');calls.push('assess')},onUpdate:()=>{}});
+ assert.equal(result.ok,false);assert.deepEqual(calls,['quant','source','events','assess']);assert.equal(result.steps[3].status,'Complete');assert.equal(initialContext.latest.id,10);
+});
+test('catalyst failure still allows the final AI assessment to run',async()=>{
+ let assessed=false;const result=await runResearchRefresh({evaluate:async()=>({asset:{id:23}}),source:async()=>({summary:'fresh'}),events:async()=>{throw new Error('timeout')},assess:async ctx=>{assert.equal(ctx.qualitative.summary,'fresh');assessed=true},onUpdate:()=>{}});
+ assert.equal(assessed,true);assert.equal(result.ok,false);assert.match(result.steps[2].status,/Failed/);assert.equal(result.steps[3].status,'Complete');
+});
+
+test('without AI runs only quantitative evaluation and retains stored research',async()=>{
+ const stored={summary:'previous sourced research'},updates=[];let aiCalls=0;
+ const result=await runResearchRefresh({includeAI:false,initialContext:{qualitative:stored},evaluate:async()=>({asset:{id:23},latest:{id:101}}),source:async()=>aiCalls++,events:async()=>aiCalls++,assess:async()=>aiCalls++,onUpdate:s=>updates.push(s)});
+ assert.equal(result.ok,true);assert.equal(aiCalls,0);assert.equal(result.steps.length,1);assert.equal(result.steps[0].status,'Complete');assert.equal(result.context.qualitative,stored);assert.equal(result.context.latest.id,101);assert.ok(updates.every(s=>s.length===1));
+});
+test('without AI reports quantitative failure without making AI calls',async()=>{
+ const result=await runResearchRefresh({includeAI:false,evaluate:async()=>{throw new Error('market unavailable')},source:async()=>{assert.fail('AI must not run')},events:async()=>{assert.fail('AI must not run')},assess:async()=>{assert.fail('AI must not run')},onUpdate:()=>{}});
+ assert.equal(result.ok,false);assert.equal(result.steps.length,1);assert.match(result.steps[0].status,/market unavailable/);
+});
