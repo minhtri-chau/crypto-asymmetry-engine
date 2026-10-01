@@ -1,3 +1,4 @@
+import {collectDirectAdoption} from "../src/direct-adoption.mjs";
 const PROTOCOLS={AAVE:"aave",PENDLE:"pendle",AERO:"aerodrome",LINK:"chainlink",ONDO:"ondo-finance"};
 const CHAINS={TAO:"Bittensor",TIA:"Celestia",SUI:"Sui"};
 const num=v=>v==null||v===""?null:Number(v);
@@ -61,6 +62,12 @@ async function akash(){
 }
 export default async function handler(req,res){
  try{
+  if(req.query?.id!==undefined){
+   const id=String(req.query.id);if(!/^[a-z0-9-]{1,100}$/i.test(id))return res.status(400).json({error:"Invalid coin id"});
+   const fetchJson=async(url,extra={})=>{const headers={accept:"application/json",...extra};if(url.startsWith("https://api.coingecko.com/")&&process.env.COINGECKO_DEMO_API_KEY)headers["x-cg-demo-api-key"]=process.env.COINGECKO_DEMO_API_KEY;
+    const r=await fetch(url,{headers,signal:AbortSignal.timeout(8000)});if(r.status!==200)throw new Error(`Provider HTTP ${r.status}`);return r.json();};
+   const intelligence=await collectDirectAdoption(id,{fetchJson});res.setHeader("Cache-Control","s-maxage=900, stale-while-revalidate=1800");return res.status(200).json({id,intelligence,at:intelligence.collected_at});
+  }
   res.setHeader("Cache-Control","s-maxage=300, stale-while-revalidate=600");
   const protocols=(await j("https://api.llama.fi/protocols"))||[];
   const tasks=Object.entries(PROTOCOLS).map(([s,l])=>protocolAsset(s,l,protocols));

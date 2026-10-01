@@ -12,7 +12,7 @@ async function allowedUser(req){
  if(!allow.length||!allow.includes(String(u.email||"").toLowerCase()))return null;return u;
 }
 const schema={type:"object",additionalProperties:false,properties:{
- adoption_development:{type:"array",maxItems:11,items:{type:"object",additionalProperties:false,properties:{metric:{type:"string",enum:ADOPTION_METRICS.map(x=>x[0])},note:{type:"string"},observations:{type:"array",maxItems:4,items:{type:"object",additionalProperties:false,properties:{date:{type:"string"},value:{type:"number"},period_days:{type:"integer"},definition:{type:"string"},scope:{type:"string"},source_ids:{type:"array",items:{type:"string"}}},required:["date","value","period_days","definition","scope","source_ids"]}}},required:["metric","note","observations"]}},
+ adoption_development:{type:"array",maxItems:11,items:{type:"object",additionalProperties:false,properties:{metric:{type:"string",enum:ADOPTION_METRICS.filter(x=>x[0]!=="github_commits").map(x=>x[0])},note:{type:"string"},observations:{type:"array",maxItems:4,items:{type:"object",additionalProperties:false,properties:{date:{type:"string"},value:{type:"number"},period_days:{type:"integer"},definition:{type:"string"},scope:{type:"string"},source_ids:{type:"array",items:{type:"string"}}},required:["date","value","period_days","definition","scope","source_ids"]}}},required:["metric","note","observations"]}},
  summary:{type:"string"},catalyst_state:{type:"string",enum:["SUPPORTED","MIXED","WEAK","NONE_FOUND","INSUFFICIENT_EVIDENCE"]},
  value_capture_state:{type:"string",enum:["SUPPORTED","PARTIAL","UNRESOLVED","WEAK","INSUFFICIENT_EVIDENCE"]},
  dilution_state:{type:"string",enum:["LOW_CONCERN","MODERATE_CONCERN","HIGH_CONCERN","INSUFFICIENT_EVIDENCE"]},

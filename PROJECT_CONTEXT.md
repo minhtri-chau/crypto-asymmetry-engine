@@ -1,6 +1,6 @@
 # Crypto Asymmetry Engine — project context
 
-Last reviewed: 2026-10-01. Code baseline: GitHub `main`, commit `002c15a` (v10.7 plus the sourced-research token-budget fix).
+Last reviewed: 2026-10-01. Implementation baseline: GitHub `main`, commit `fef9478` (v10.7 plus the token-budget fix and merged project context). v10.8 is prepared locally.
 
 This is the durable handoff for collaborators. It summarizes release documents, current code, and recovered decisions from the **Analyze YouTube video** and **Chat Context Transfer** conversations. It is a summary, not a verbatim transcript. Release instructions describe what a release required; their existence does not prove those steps succeeded in production. Current code and later explicit decisions supersede older release instructions. Read the linked release document for exact SQL/deployment steps. This file merges the earlier short `PROJECT_CONTEXT.md` (shipped in the v10.7 ZIP) into this fuller version; every point from the short file is covered here.
 
@@ -86,7 +86,7 @@ Conceptual sequence: market regime → narrative/attention and capital rotation 
 - Read transport responses as text and parse defensively so non-JSON platform errors expose the actual HTTP failure instead of masking it with a parse error.
 - v10.6.1 **Refresh Research with AI** attempts quantitative → sourced qualitative → event intelligence → AI assessment, in that order, continuing after failures. Each step reports its own result; successful records remain saved.
 - Later steps use fresh saved results when available, otherwise existing evidence with original timestamps. Final AI reloads available event records. Overall failure remains visible if any stage failed.
-- **Refresh Research without AI** performs quantitative evaluation only; it preserves stored sourced/event/AI evidence. Stay on the page during the current synchronous pipeline.
+- **Refresh Research without AI** performs quantitative evaluation and, from v10.8, direct adoption collection; it preserves stored sourced/event/AI evidence. Stay on the page during the current synchronous pipeline.
 - Single-coin refresh validates the signed-in owner's asset and worker capability before POST. Malformed targets must never fall back to a full scan. Scheduled empty-body research-monitor calls retain universe behavior.
 - Paid sourced/AI research is on demand; do not turn it into automatic per-coin daily spending without an explicit decision.
 
@@ -122,7 +122,7 @@ Conceptual sequence: market regime → narrative/attention and capital rotation 
 - Definitions, project scope and measurement periods must match; baseline tolerance is three days. Zero baseline, invalid/future dates, missing resolved sources and invalid values produce Unknown.
 - Older-than-30-day usage/economic observations and older-than-60-day developer/release observations are marked stale. Collection time is distinct from observation date.
 - Addresses are not people; paying users and retention need their own definitions. USD TVL growth includes asset-price effects; net deposits require direct flow evidence. Commits are not unique developers or developer retention. Releases indicate activity, not continuity.
-- Existing records show Unknown until refreshed with AI/sourced research. A successful run can still leave unsupported metrics unknown. Quantitative-only refresh does not collect them.
+- Existing records show Unknown until refreshed with AI/sourced research. A successful run can still leave unsupported metrics unknown. The v10.7 quantitative-only refresh did not collect them; v10.8 adds direct collection to the without-AI workflow.
 - Adoption coverage is separate from Thesis Coverage. No scanner score/entry threshold/allocation change was made. AI receives the evidence through the existing qualitative packet; deterministic scores remain independent.
 
 ## 9. Video-derived judgments and deferred proposals
@@ -162,6 +162,7 @@ Do not store an old AAVE/ASTER/etc. recommendation here as a permanent conclusio
 | v10.4–v10.5 | Remove replaces visible Archive; drag-to-measure charts. |
 | v10.6–v10.6.1 | Single-coin four-stage refresh, independent failures and quantitative-only option. |
 | v10.7 + 002c15a | Sourced adoption/development panel and 16,000-token qualitative budget. |
+| v10.8 | Direct provider collection without OpenAI credits, saved adoption snapshots and GitHub commit activity proxy. |
 
 Exact deployment documents and implementation specs are in `releases/`; matching migrations are also there. Read the relevant document rather than re-running the entire historical migration/deploy sequence.
 
@@ -185,4 +186,19 @@ Exact deployment documents and implementation specs are in `releases/`; matching
 - Vercel Ready and live v10.7 sourced collection have not been independently verified in this context update. Earlier v10.6.1 deployment was user-confirmed.
 - v10.7 requires frontend/API deployment through Vercel only; no new SQL, Supabase worker, cron, secret or dependency changes.
 - After deployment, refresh a researched coin with AI and review observation dates/source links/comparability. Unknown metrics can be a legitimate coverage limit.
-- This update changes documentation only, retains product version v10.7 and is prepared locally for the user's commit/push workflow.
+- The prior context update was documentation-only. v10.8 is now prepared locally for the user's commit/push workflow; see section 13 for the new migration and final scope.
+
+## 13. v10.8 — direct adoption data without AI credits
+
+The user exhausted OpenAI credits and does not plan to refill soon. Prioritize useful direct data and preserve existing AI evidence without invoking paid calls.
+
+- Reuses api/fundamentals.js with a validated coin-id query; legacy endpoint behavior is preserved. API count stays 11. Direct collection uses no OpenAI endpoint.
+- Unique CoinGecko-ID DefiLlama family matching; historical TVL and complete trailing 30-day fees/revenue windows where available. Ambiguous/unsupported assets remain unknown. Current unfinished UTC day and incomplete windows are excluded.
+- One CoinGecko-listed GitHub repository supplies trailing 28-day reported commits as a separate activity proxy. Never equate it with core developers, retention or whole-project coverage. GitHub pending/rate-limited responses are missing, not zero.
+- Both research refresh modes attempt direct collection after quantitative evaluation; without AI calls only those two stages. A dedicated panel button can refresh direct data independently. Failures do not block later pipeline stages.
+- New private adoption_evidence_snapshots table stores one record per user/asset/UTC collection date with RLS and owned-asset write checks. Up to 210 daily snapshots plus saved sourced evidence provide comparable history. No-data failures preserve stored snapshots.
+- Collection is on demand, not a new cron. No score/threshold, automatic allocation, event, position or expectation changes. Users, net deposits and developer retention stay unknown unless existing sourced evidence supplies them.
+- Apply releases/V10.8-MIGRATION.sql before pushing frontend/API. No Edge Function, cron, dependency or secret changes. Preserve the 16,000-token qualitative budget.
+- v10.8 status: implemented locally, not pushed/deployed. Live database migration and UI acceptance remain unverified; v10.7 deployment remains unverified in this handoff.
+
+Delivery verification for v10.8: 39/39 tests and production build pass. A read-only live AAVE collector run returned TVL, fees, revenue and GitHub commit observations at four dates each. No OpenAI calls or user database writes were made. Supabase migration and browser persistence require deployment acceptance.

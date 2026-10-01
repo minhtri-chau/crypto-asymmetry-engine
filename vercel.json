@@ -12,6 +12,9 @@
     },
     "api/research-refresh.js": {
       "maxDuration": 120
+    },
+    "api/fundamentals.js": {
+      "maxDuration": 60
     }
   }
 }
