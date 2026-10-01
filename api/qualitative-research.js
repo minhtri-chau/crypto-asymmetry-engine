@@ -46,7 +46,7 @@ No buy/sell commands, rankings, price targets, or return forecasts. Each factual
 Quantitative orientation only, not a source for qualitative claims: ${JSON.stringify(req.body?.quant||{})}
 Find current sourced evidence for catalysts, token value capture, tokenomics/unlocks/emissions, competitive changes, and material protocol/security/regulatory risks.`;
  const r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${process.env.OPENAI_API_KEY}`},body:JSON.stringify({
-  model:MODEL,reasoning:{effort:"medium"},max_output_tokens:11000,instructions,input,tools:[{type:"web_search"}],
+  model:MODEL,reasoning:{effort:"medium"},max_output_tokens:16000,instructions,input,tools:[{type:"web_search"}],
   text:{format:{type:"json_schema",name:"qualitative_intelligence",strict:true,schema}}
  })});
  const upstream=await safeJson(r);
