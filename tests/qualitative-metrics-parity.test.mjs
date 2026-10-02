@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs/promises';
+// Vercel loads api/*.js as CommonJS, so api files must not import ../src/*.mjs at runtime.
+test('api files import nothing from src at runtime',async()=>{for(const f of await fs.readdir(new URL('../api/',import.meta.url))){if(!f.endsWith('.js'))continue;const s=await fs.readFile(new URL('../api/'+f,import.meta.url),'utf8');assert.ok(!/from\s*["']\.\.\/src\//.test(s),`${f} imports from ../src`)}});
+test('inlined ADOPTION_METRICS matches the canonical list',async()=>{const api=await fs.readFile(new URL('../api/qualitative-research.js',import.meta.url),'utf8'),src=await fs.readFile(new URL('../src/adoption-evidence.mjs',import.meta.url),'utf8');const block=src.match(/export const ADOPTION_METRICS = \[[\s\S]*?\n\];/)[0].replace('export const ','const ');assert.ok(api.includes(block))});

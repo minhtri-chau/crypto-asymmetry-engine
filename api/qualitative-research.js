@@ -1,4 +1,14 @@
-import {ADOPTION_METRICS} from "../src/adoption-evidence.mjs";
+// Inlined copy of src/adoption-evidence.mjs ADOPTION_METRICS: Vercel loads api/*.js as CommonJS, so importing the
+// .mjs file failed at startup (ERR_REQUIRE_ESM -> FUNCTION_INVOCATION_FAILED). tests/qualitative-metrics-parity.test.mjs
+// keeps this copy identical to the canonical list.
+const ADOPTION_METRICS = [
+ ["active_addresses","Active addresses","count"], ["paying_users","Paying users","count"],
+ ["retained_users","Retained users","percent"], ["tvl_usd","TVL","usd"],
+ ["net_deposits_usd","Net deposits","usd"], ["fees_usd","Fees","usd"],
+ ["revenue_usd","Protocol revenue","usd"], ["monthly_active_developers","Monthly active developers","count"],
+ ["established_developers","Established developers","count"], ["developer_retention","Developer retention","percent"],
+ ["releases","Releases","count"], ["github_commits","GitHub commits (activity proxy)","count"]
+];
 // v9.1.1 replacement for api/qualitative-research.js
 const MODEL=process.env.OPENAI_QUAL_MODEL||process.env.OPENAI_MODEL||"gpt-5.6-sol";
 const MAX_BODY=20000;
