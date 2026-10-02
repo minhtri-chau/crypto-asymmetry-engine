@@ -1,4 +1,34 @@
-import {collectDirectAdoption} from "../src/direct-adoption.mjs";
+// Self-contained Vercel handler: no runtime import from frontend source.
+const DAY=86400000, iso=t=>new Date(t).toISOString().slice(0,10), finite=v=>typeof v==='number'&&Number.isFinite(v)&&v>=0;
+function observationsFromDaily(rows,{metric,scope,source,period=1,now=Date.now()}){
+ const daily=new Map();for(const row of rows||[]){const t=Number(Array.isArray(row)?row[0]:row.date)*1000,v=Array.isArray(row)?row[1]:row.totalLiquidityUSD;if(Number.isFinite(t)&&finite(v)&&t<Math.floor(now/DAY)*DAY)daily.set(iso(t),v);}
+ const dates=[...daily.keys()].sort(),out=[];
+ for(const offset of [0,30,90,180]){const end=dates.at(-1);if(!end)continue;const target=Date.parse(end)-DAY*offset,date=iso(target);if(!daily.has(date))continue;let sum=0,complete=true;for(let k=0;k<period;k++){const d=iso(target-k*DAY);if(!daily.has(d)){complete=false;break}sum+=daily.get(d);}if(complete)out.push({date,value:sum,period_days:period,definition:period===1?'USD TVL snapshot':`Trailing ${period}-day ${metric}`,scope,source_ids:[source]});}return out;
+}
+function githubRepo(url){try{const u=new URL(url),p=u.pathname.split('/').filter(Boolean);return u.protocol==='https:'&&u.hostname==='github.com'&&p.length===2&&p.every(x=>/^[a-zA-Z0-9_.-]+$/.test(x))?p.join('/').replace(/\.git$/,''):null}catch{return null}}
+function mergeEvidence(records){const sources=new Map(),metrics=new Map();for(const r of records.filter(Boolean)){for(const s of r.sources||[])if(!sources.has(s.id))sources.set(s.id,s);for(const m of r.adoption_development||[]){if(!metrics.has(m.metric))metrics.set(m.metric,{...m,observations:[]});const target=metrics.get(m.metric);for(const o of m.observations||[])if(!target.observations.some(p=>p.date===o.date&&p.scope===o.scope&&p.definition===o.definition&&p.period_days===o.period_days))target.observations.push(o);}}return{sources:[...sources.values()],adoption_development:[...metrics.values()]};}
+async function collectDirectAdoption(id,{fetchJson,now=Date.now()}){
+ const diagnostics=[],sources=[],metrics=[];
+ const load=async(url,headers)=>{try{return await fetchJson(url,headers)}catch{diagnostics.push(`Unavailable: ${new URL(url).hostname}${new URL(url).pathname}`);return null}};
+ const [coin,protocols,lite]=await Promise.all([load(`https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false`),load('https://api.llama.fi/protocols'),load('https://api.llama.fi/lite/protocols2')]);
+ // DefiLlama usually puts the CoinGecko ID on the PARENT protocol (lite/protocols2 parentProtocols), not on its children
+ // (e.g. parent#pendle, parent#chainlink), so match both lists by exact ID.
+ const matches=Array.isArray(protocols)?protocols.filter(p=>p.gecko_id===id):[],parents=Array.isArray(lite?.parentProtocols)?lite.parentProtocols.filter(p=>p.gecko_id===id&&String(p.id||'').startsWith('parent#')).map(p=>p.id.slice(7)):[],families=[...new Set([...matches.map(p=>p.parentProtocol?.startsWith('parent#')?p.parentProtocol.slice(7):p.slug),...parents])].filter(x=>/^[a-z0-9-]+$/i.test(x));
+ if(families.length===1){const slug=families[0],scope=`DefiLlama protocol family ${slug}`,urls=[`https://api.llama.fi/protocol/${slug}`,`https://api.llama.fi/summary/fees/${slug}?dataType=dailyFees`,`https://api.llama.fi/summary/fees/${slug}?dataType=dailyRevenue`],payloads=await Promise.all(urls.map(u=>load(u)));
+  for(let i=0;i<3;i++){const metric=['tvl_usd','fees_usd','revenue_usd'][i],sid=`direct-llama-${slug}-${metric}`,rows=i===0?payloads[i]?.tvl:payloads[i]?.totalDataChart;sources.push({id:sid,url:urls[i],title:`DefiLlama ${slug} ${metric}`,publisher:'DefiLlama',source_type:'DATA_PROVIDER'});metrics.push({metric,note:i===0?'USD TVL includes price effects, not net deposits.':'Provider-reported economics, not token-holder accrual. Complete 30-day windows required.',observations:observationsFromDaily(Array.isArray(rows)?rows:[],{metric,scope,source:sid,period:i===0?1:30,now})});}
+ }else diagnostics.push(families.length?'Ambiguous protocol family; fundamentals not guessed.':'No CoinGecko-ID protocol match.');
+ const repos=[...new Set((coin?.links?.repos_url?.github||[]).map(githubRepo).filter(Boolean))];
+ // An archived repository (e.g. Aave's v1 repo, the only one CoinGecko lists) would report 0 commits as if development
+ // stopped; use the first listed repository that is not archived, checking at most three.
+ let repo=null,archived=[];for(const r of repos.slice(0,3)){const meta=await load(`https://api.github.com/repos/${r}`,{accept:'application/vnd.github+json','User-Agent':'crypto-asymmetry-engine'});if(meta?.archived===true){archived.push(r);continue}if(!meta)diagnostics.push(`Archive status of ${r} unverified.`);repo=r;break}
+ if(!repo&&archived.length){diagnostics.push(`Listed repositories are archived (${archived.join(', ')}); commit activity not reported.`);metrics.push({metric:'github_commits',note:`CoinGecko lists only archived repositories (${archived.join(', ')}); current development happens elsewhere, so commit activity is unknown.`,observations:[]})}
+ if(repo){const sid=`direct-github-${repo}-commits`,stats=await load(`https://api.github.com/repos/${repo}/stats/commit_activity`,{accept:'application/vnd.github+json','User-Agent':'crypto-asymmetry-engine'});sources.push({id:sid,url:`https://github.com/${repo}/graphs/commit-activity`,title:`GitHub commit activity: ${repo}`,publisher:'GitHub',source_type:'DATA_PROVIDER'});
+  const days=[];for(const w of Array.isArray(stats)?stats:[])if(Number.isFinite(w.week)&&Array.isArray(w.days)&&w.days.length===7)w.days.forEach((v,i)=>days.push([w.week+i*86400,v]));
+  metrics.push({metric:'github_commits',note:`One CoinGecko-listed repository (${repo}); activity proxy, not unique developers, retention or whole-project coverage.`,observations:observationsFromDaily(days,{metric:'reported repository commits',scope:`GitHub repository ${repo}`,source:sid,period:28,now})});if(!Array.isArray(stats))diagnostics.push('GitHub activity pending, rate-limited or unavailable; retry later.');
+ }else if(!repos.length)diagnostics.push('No public repository URL supplied by CoinGecko.');
+ return{sources,adoption_development:metrics,diagnostics,collected_at:new Date(now).toISOString()};
+}
+
 const PROTOCOLS={AAVE:"aave",PENDLE:"pendle",AERO:"aerodrome",LINK:"chainlink",ONDO:"ondo-finance"};
 const CHAINS={TAO:"Bittensor",TIA:"Celestia",SUI:"Sui"};
 const num=v=>v==null||v===""?null:Number(v);
